@@ -49,3 +49,34 @@ sudo apt install ros-humble-joy ros-humble-teleop-twist-joy
 *   Check the terminal for "Serial Port Open Success".
 *   If "Permission denied", run the `chmod` command above.
 *   If the robot beeps or lights up but doesn't move, ensure the battery is charged and the motor switch is ON.
+
+## Workstation <-> Robot Deployment
+
+### 1. Configuration
+Before deploying, edit `scripts/deploy_to_robot.sh` on your workstation:
+```bash
+ROBOT_USER="jetson"
+ROBOT_IP="192.168.1.XXX" # Set your robot's actual IP
+ROBOT_WS_PATH="~/anzym_ros_ws"
+```
+
+### 2. Deploying Code
+Run the script from the root of your workspace to sync code to the robot:
+```bash
+./scripts/deploy_to_robot.sh
+```
+
+### 3. Remote Build & Launch
+After syncing, SSH into the robot to build and run:
+```bash
+ssh jetson@<ROBOT_IP>
+cd ~/anzym_ros_ws
+colcon build --symlink-install
+source install/setup.bash
+
+# To launch just the robot core (Drivers)
+ros2 launch anzym_core bringup_launch.py
+
+# To launch with Joystick
+ros2 launch anzym_core joystick_control_launch.py
+```
