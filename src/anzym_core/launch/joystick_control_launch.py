@@ -1,10 +1,15 @@
+import os
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
     
+    pkg_anzym_core = get_package_share_directory('anzym_core')
+
     return LaunchDescription([
         # Arguments
         DeclareLaunchArgument(
@@ -12,13 +17,22 @@ def generate_launch_description():
             default_value='/dev/input/js0',
             description='Joystick device file'
         ),
+        # Pass-through arguments to bringup
         DeclareLaunchArgument(
             'port',
             default_value='/dev/ttyUSB0',
             description='Rosmaster serial port'
         ),
 
-        # Joy Node (Reads the physical joystick)
+        # 1. Include the Robot Bringup (Drivers)
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(pkg_anzym_core, 'launch', 'bringup_launch.py')
+            ),
+            launch_arguments={'port': LaunchConfiguration('port')}.items()
+        ),
+
+        # 2. Joy Node (Reads the physical joystick)
         Node(
             package='joy',
             executable='joy_node',
@@ -30,31 +44,20 @@ def generate_launch_description():
             }]
         ),
 
-        # Teleop Twist Joy (Converts joy -> cmd_vel)
+        # 3. Teleop Twist Joy (Converts joy -> cmd_vel)
         Node(
             package='teleop_twist_joy',
             executable='teleop_node',
             name='teleop_twist_joy_node',
             parameters=[{
-                'enable_button': -1, # Enable always (or set to your deadman switch index)
-                'axis_linear.x': 1,  # Left stick vertical
+                'enable_button': -1,
+                'axis_linear.x': 1,
                 'scale_linear.x': 0.5,
-                'axis_linear.y': 0,  # Left stick horizontal (Strafe)
+                'axis_linear.y': 0,
                 'scale_linear.y': 0.5,
-                'axis_angular.yaw': 2, # Right stick horizontal
+                'axis_angular.yaw': 2,
                 'scale_angular.yaw': 1.0,
                 'require_enable_button': False
-            }]
-        ),
-
-        # Rosmaster Driver (Talks to the robot hardware)
-        Node(
-            package='anzym_core',
-            executable='driver_node',
-            name='rosmaster_driver',
-            parameters=[{
-                'port': LaunchConfiguration('port'),
-                'car_type': 2 # X3 Plus (from Rosmaster_Lib.py CARTYPE_X3_PLUS = 0x02)
             }]
         )
     ])
