@@ -4,17 +4,17 @@ This roadmap outlines the step-by-step development of the Anzym ROS2 stack.
 
 ## Phase 1: Basic Control & Hardware Abstraction
 **Goal**: Get the robot moving via joystick and establish base hardware communication.
-- [ ] **Step 1.1**: Workspace Setup & Repo Initialization (Completed)
-- [ ] **Step 1.2**: Mecanum Wheel Teleoperation (Joystick Control)
-    - Implement/Port low-level motor driver (Serial communication).
-    - Configure `teleop_twist_joy` for input.
-    - Implement kinematics for Mecanum drive (geometry_msgs/Twist -> Motor speeds).
+- [x] **Step 1.1**: Workspace Setup & Repo Initialization
+- [x] **Step 1.2**: Mecanum Wheel Teleoperation (Joystick Control)
+    - [x] Implement/Port low-level motor driver (Serial communication).
+    - [x] Configure `teleop_twist_joy` for input.
+    - [x] Implement kinematics for Mecanum drive (geometry_msgs/Twist -> Motor speeds).
 
 ## Phase 2: Sensor Integration
 **Goal**: Visualize the robot's environment.
-- [ ] **Step 2.1**: Lidar Setup
-    - Bring up the lidar driver.
-    - Visualize data in RViz (on remote PC).
+- [x] **Step 2.1**: Lidar Setup
+    - [x] Bring up the lidar driver (YDLidar).
+    - [x] Visualize data in RViz (on remote PC).
 - [ ] **Step 2.2**: Camera Integration
     - Configure Jetson Orin camera/USB camera.
     - specialized node for camera stream.

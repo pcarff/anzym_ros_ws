@@ -99,19 +99,30 @@ class RosmasterDriver(Node):
         
         # Send to robot using set_motor(m1, m2, m3, m4)
         
-        # CONFIRMED MAPPING (via User Diagnostic):
+        # -------------------------------------------------------------------------
+        #  Anzym Hardware Specific Mapping (NON-STANDARD)
+        # -------------------------------------------------------------------------
+        # Diagnosis confirmed the following physical motor wiring on this specific unit:
         # M1 = Front Left
         # M2 = Rear Left
-        # M3 = Rear Right
-        # M4 = Front Right
+        # M3 = Rear Right (Standard would be Front Right)
+        # M4 = Front Right (Standard would be Rear Right)
         
-        # Mapping:
+        # Apply Mapping for Anzym:
         # M1 <-- v_fl
         # M2 <-- v_rl
-        # M3 <-- v_rr (Note the swap here!)
-        # M4 <-- v_fr
-        
+        # M3 <-- v_rr (Swapped)
+        # M4 <-- v_fr (Swapped)
         self.bot.set_motor(int(v_fl), int(v_rl), int(v_rr), int(v_fr))
+
+        # -------------------------------------------------------------------------
+        #  Standard Yahboom X3 Configuration
+        # -------------------------------------------------------------------------
+        # If you are using a standard X3, your wiring likely matches the label:
+        # M1=FL, M2=RL, M3=FR, M4=RR.
+        # Uncomment the line below for standard wiring:
+        # self.bot.set_motor(int(v_fl), int(v_rl), int(v_fr), int(v_rr))
+        # -------------------------------------------------------------------------
         
         # self.bot.set_car_motion(vx, vy, vz)
 

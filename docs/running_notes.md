@@ -50,12 +50,26 @@ sudo apt install ros-humble-joy ros-humble-teleop-twist-joy
 
 **Robot doesn't move**
 *   Check the terminal for "Serial Port Open Success".
-*   If "Permission denied", run the `chmod` command above.
-*   If the robot beeps or lights up but doesn't move, ensure the battery is charged and the motor switch is ON.
+### 4. Lidar Verification
+The system now includes the **YDLidar 4ROS** driven by `ydlidar_ros2_driver`.
+It launches automatically with `bringup_launch.py`.
 
-## Workstation <-> Robot Deployment
+**To visualize scanner data:**
+1.  On your workstation:
+    ```bash
+    ros2 run rviz2 rviz2
+    ```
+2.  **RViz Settings**:
+    *   **Fixed Frame**: Set to `laser` (or `base_link`).
+    *   **Add**: Select **LaserScan**.
+    *   **Topic**: Select `/scan`.
+    *   **CRITICAL: QoS Settings**:
+        *   Expand "Topic" -> "Reliability Policy".
+        *   Set to **Best Effort** (if scan is not showing).
 
-### 1. Configuration
+**Troubleshooting Lidar:**
+*   Port: Auto-detected as `/dev/ydlidar` (usually mapped to `/dev/ttyUSB0`).
+*   Baud: 512000 (auto-negotiated).
 Before deploying, edit `scripts/deploy_to_robot.sh` on your workstation:
 ```bash
 ROBOT_USER="jetson"
