@@ -9,13 +9,13 @@ def generate_launch_description():
         # Arguments
         DeclareLaunchArgument(
             'port',
-            default_value='/dev/ttyUSB0',
+            default_value='/dev/ttyUSB1',
             description='Rosmaster serial port'
         ),
         
         DeclareLaunchArgument(
             'car_type',
-            default_value='2', # X3 Plus
+            default_value='1', # X3
             description='Car type: 1=X3, 2=X3 Plus, 4=R2'
         ),
 

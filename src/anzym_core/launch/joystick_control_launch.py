@@ -3,6 +3,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 
@@ -17,18 +18,23 @@ def generate_launch_description():
             default_value='/dev/input/js0',
             description='Joystick device file'
         ),
-        # Pass-through arguments to bringup
         DeclareLaunchArgument(
             'port',
             default_value='/dev/ttyUSB0',
             description='Rosmaster serial port'
         ),
+        DeclareLaunchArgument(
+            'launch_driver',
+            default_value='True',
+            description='Whether to launch the local Rosmaster driver'
+        ),
 
-        # 1. Include the Robot Bringup (Drivers)
+        # 1. Include the Robot Bringup (Drivers) - Conditionally
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
                 os.path.join(pkg_anzym_core, 'launch', 'bringup_launch.py')
             ),
+            condition=IfCondition(LaunchConfiguration('launch_driver')),
             launch_arguments={'port': LaunchConfiguration('port')}.items()
         ),
 
@@ -56,7 +62,7 @@ def generate_launch_description():
                 'axis_linear.y': 0,
                 'scale_linear.y': 0.5,
                 'axis_angular.yaw': 2,
-                'scale_angular.yaw': 1.0,
+                'scale_angular.yaw': 0.5,
                 'require_enable_button': False
             }]
         )

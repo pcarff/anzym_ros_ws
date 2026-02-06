@@ -5,27 +5,30 @@ This document serves as a quick reference for running the various subsystems of 
 ## Phase 1: Joystick Teleoperation
 **Objective**: Manually control the robot using a gamepad (Xbox/PS4/Logitech).
 
-### 1. Hardware Setup
-*   **Joystick**: Connect your game controller to the Jetson Orin NX (via USB or Bluetooth).
-    *   Verify connection: `ls /dev/input/js*` (usually `js0`).
-*   **Robot Connection**: Ensure the Rosmaster X3 control board is connected via USB.
-    *   Verify port: `ls /dev/ttyUSB*` (usually `/dev/ttyUSB0`).
-    *   *Note: You may need permissions:* `sudo chmod 666 /dev/ttyUSB0`
+### 1. Hardware Setup (Confirmed)
+*   **Robot Connection**: The Motor Board is on **/dev/ttyUSB1** (not USB0).
+*   **Hardware Anomaly**: The motor wiring for the Rear Right (M3) and Front Right (M4) is **SWAPPED** compared to standard documentation.
+    *   *Correction*: This is handled automatically by the custom mixer in `driver_node.py`. **Do not change the wiring.**
+*   **Car Type**: Use `car_type:=1` (X3).
 
-### 2. Execution Command
-Open a terminal and run:
+### 2. Execution Command (Robot Side)
+Open a terminal (SSH) and run:
 
 ```bash
 # Source the workspace
 source ~/anzym_ros_ws/install/setup.bash
 
-# Launch the joystick control stack
-ros2 launch anzym_core joystick_control_launch.py
+# Launch Core Drivers (Port defaults to /dev/ttyUSB1)
+ros2 launch anzym_core bringup_launch.py
 ```
 
-*Optional Arguments:*
-*   Specify a different port: `port:=/dev/ttyUSB1`
-*   Specify a different joystick: `joy_dev:=/dev/input/js1`
+### 3. Control Command (Laptop/Remote Side)
+Connect joystick to workstation:
+
+```bash
+# Launch joystick only (disable local driver)
+ros2 launch anzym_core joystick_control_launch.py launch_driver:=False
+```
 
 ### 3. Control Scheme (Mecanum Drive)
 The `teleop_twist_joy` is configured for holonomic movement.
@@ -80,3 +83,20 @@ ros2 launch anzym_core bringup_launch.py
 # To launch with Joystick
 ros2 launch anzym_core joystick_control_launch.py
 ```
+
+### 5. Troubleshooting: "No Movement"
+If the robot receives `/joy` (joystick) data but doesn't move:
+
+1.  **Check for Conflicting Drivers**:
+    *   Do **NOT** run `joystick_control_launch.py` on the robot if you are *also* running `bringup_launch.py`. This starts two driver nodes that fight for the USB port.
+    *   **Correct Remote Control Setup**:
+        *   **Robot**: Run `ros2 launch anzym_core bringup_launch.py`
+        *   **Workstation (Joystick)**: Run `ros2 launch anzym_core joystick_control_launch.py launch_driver:=False`
+
+2.  **Verify Command Velocity**:
+    *   On the robot, run: `ros2 topic echo /cmd_vel`
+    *   Move the joystick. You should see linear/angular values changing.
+    *   If `/cmd_vel` is silent: The joystick node on your workstation isn't publishing. Check the `enable_button` setting or joystick device (`/dev/input/js0`).
+
+3.  **Check Car Type**:
+    *   Default is `car_type:=2` (X3 Plus). If you have the standard X3, launch with `ros2 launch anzym_core bringup_launch.py car_type:=1`.

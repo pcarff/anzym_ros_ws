@@ -7,7 +7,7 @@ import serial
 import threading
 
 
-# V3.3.9
+# V3.3.1
 class Rosmaster(object):
     __uart_state = 0
 
@@ -70,22 +70,22 @@ class Rosmaster(object):
         self.CARTYPE_X1 = 0x04
         self.CARTYPE_R2 = 0x05
 
-        self.__ax = 0.0
-        self.__ay = 0.0
-        self.__az = 0.0
-        self.__gx = 0.0
-        self.__gy = 0.0
-        self.__gz = 0.0
-        self.__mx = 0.0
-        self.__my = 0.0
-        self.__mz = 0.0
-        self.__vx = 0.0
-        self.__vy = 0.0
-        self.__vz = 0.0
+        self.__ax = 0
+        self.__ay = 0
+        self.__az = 0
+        self.__gx = 0
+        self.__gy = 0
+        self.__gz = 0
+        self.__mx = 0
+        self.__my = 0
+        self.__mz = 0
+        self.__vx = 0
+        self.__vy = 0
+        self.__vz = 0
 
-        self.__yaw = 0.0
-        self.__roll = 0.0
-        self.__pitch = 0.0
+        self.__yaw = 0
+        self.__roll = 0
+        self.__pitch = 0
 
         self.__encoder_m1 = 0
         self.__encoder_m2 = 0
@@ -159,7 +159,7 @@ class Rosmaster(object):
             self.__ay = struct.unpack('h', bytearray(ext_data[8:10]))[0]*accel_ratio
             self.__az = struct.unpack('h', bytearray(ext_data[10:12]))[0]*accel_ratio
             # 磁力计传感器
-            mag_ratio = 1.0
+            mag_ratio = 1
             self.__mx = struct.unpack('h', bytearray(ext_data[12:14]))[0]*mag_ratio
             self.__my = struct.unpack('h', bytearray(ext_data[14:16]))[0]*mag_ratio
             self.__mz = struct.unpack('h', bytearray(ext_data[16:18]))[0]*mag_ratio
@@ -254,8 +254,6 @@ class Rosmaster(object):
 
     # 接收数据 receive data
     def __receive_data(self):
-        # 清空缓冲区
-        self.ser.flushInput()
         while True:
             head1 = bytearray(self.ser.read())[0]
             if head1 == self.__HEAD:
@@ -351,7 +349,6 @@ class Rosmaster(object):
                 task_receive.start()
                 print("----------------create receive threading--------------")
                 self.__uart_state = 1
-                time.sleep(.05)
         except:
             print('---create_receive_threading error!---')
             pass
@@ -965,21 +962,11 @@ class Rosmaster(object):
     # Clear the cache data automatically sent by the MCU
     def clear_auto_report_data(self):
         self.__battery_voltage = 0
-        self.__ax = 0.0
-        self.__ay = 0.0
-        self.__az = 0.0
-        self.__gx = 0.0
-        self.__gy = 0.0
-        self.__gz = 0.0
-        self.__mx = 0.0
-        self.__my = 0.0
-        self.__mz = 0.0
-        self.__vx = 0.0
-        self.__vy = 0.0
-        self.__vz = 0.0
-        self.__yaw = 0.0
-        self.__roll = 0.0
-        self.__pitch = 0.0
+        self.__vx, self.__vy, self.__vz = 0, 0, 0
+        self.__ax, self.__ay, self.__az = 0, 0, 0
+        self.__gx, self.__gy, self.__gz = 0, 0, 0
+        self.__mx, self.__my, self.__mz = 0, 0, 0
+        self.__yaw, self.__roll, self.__pitch = 0, 0, 0
 
     # 读取阿克曼类型(R2)小车前轮舵机默认角度。
     def get_akm_default_angle(self):
@@ -1107,20 +1094,20 @@ class Rosmaster(object):
     # Get accelerometer triaxial data, return a_x, a_y, a_z
     def get_accelerometer_data(self):
         a_x, a_y, a_z = self.__ax, self.__ay, self.__az
-        # self.__ax, self.__ay, self.__az = 0.0, 0.0, 0.0
+        # self.__ax, self.__ay, self.__az = 0, 0, 0
         return a_x, a_y, a_z
 
     # 获取陀螺仪三轴数据，返回g_x, g_y, g_z
     # Get the gyro triaxial data, return g_x, g_y, g_z
     def get_gyroscope_data(self):
         g_x, g_y, g_z = self.__gx, self.__gy, self.__gz
-        # self.__gx, self.__gy, self.__gz = 0.0, 0.0, 0.0
+        # self.__gx, self.__gy, self.__gz = 0, 0, 0
         return g_x, g_y, g_z
 
     # 获取磁力计三轴数据，返回m_x, m_y, m_z
     def get_magnetometer_data(self):
         m_x, m_y, m_z = self.__mx, self.__my, self.__mz
-        # self.__mx, self.__my, self.__mz = 0.0, 0.0, 0.0
+        # self.__mx, self.__my, self.__mz = 0, 0, 0
         return m_x, m_y, m_z
 
     # 获取板子姿态角，返回yaw, roll, pitch
@@ -1133,7 +1120,7 @@ class Rosmaster(object):
             yaw = self.__yaw * RtA
         else:
             roll, pitch, yaw = self.__roll, self.__pitch, self.__yaw
-        # self.__roll, self.__pitch, self.__yaw = 0.0, 0.0, 0.0
+        # self.__roll, self.__pitch, self.__yaw = 0, 0, 0
         return roll, pitch, yaw
 
     # 获取小车速度，val_vx, val_vy, val_vz
@@ -1142,7 +1129,7 @@ class Rosmaster(object):
         val_vx = self.__vx
         val_vy = self.__vy
         val_vz = self.__vz
-        # self.__vx, self.__vy, self.__vz = 0.0, 0.0, 0.0
+        # self.__vx, self.__vy, self.__vz = 0, 0, 0
         return val_vx, val_vy, val_vz
 
     # 获取电池电压值
@@ -1230,27 +1217,22 @@ class Rosmaster(object):
 
 if __name__ == '__main__':
     # 小车底层处理库
-    import platform
-    device = platform.system()
-    print("Read device:", device)
-    if device == 'Windows':
-        com_index = 1
-        while True:
-            com_index = com_index + 1
-            try:
-                print("try COM%d" % com_index)
-                com = 'COM%d' % com_index
-                bot = Rosmaster(1, com, debug=True)
-                break
-            except:
-                if com_index > 256:
-                    print("-----------------------No COM Open--------------------------")
-                    exit(0)
-                continue
-        print("--------------------Open %s---------------------" % com)
-    else:
-        bot = Rosmaster(com="/dev/ttyUSB0", debug=True)
-    
+    # com_index = 1
+    # while True:
+    #     com_index = com_index + 1
+    #     try:
+    #         print("try COM%d" % com_index)
+    #         com = 'COM%d' % com_index
+    #         bot = Rosmaster(1, com, debug=True)
+    #         break
+    #     except:
+    #         if com_index > 256:
+    #             print("-----------------------No COM Open--------------------------")
+    #             exit(0)
+    #         continue
+    # print("--------------------Open %s---------------------" % com)
+
+    bot = Rosmaster(car_type=5, debug=True)
     bot.create_receive_threading()
     time.sleep(.1)
     bot.set_beep(50)
@@ -1259,10 +1241,10 @@ if __name__ == '__main__':
     version = bot.get_version()
     print("version=", version)
 
-    # bot.set_car_type(4)
-    # time.sleep(.1)
-    # car_type = bot.get_car_type_from_machine()
-    # print("car_type:", car_type)
+    bot.set_car_type(5)
+    time.sleep(.1)
+    car_type = bot.get_car_type_from_machine()
+    print("car_type:", car_type)
     # bot.set_uart_servo_angle(1, 100)
 
     # s_id, value = bot.get_uart_servo_value(1)
@@ -1287,7 +1269,7 @@ if __name__ == '__main__':
     # angle_array = bot.get_uart_servo_angle_array()
     # print("angle_array:", angle_array)
 
-    # bot.set_car_motion(0.5, 0, 0)
+    bot.set_car_motion(0.5, 0, 0)
 
     # bot.send_ip_addr("192.168.1.2")
 
@@ -1305,18 +1287,18 @@ if __name__ == '__main__':
             gx, gy, gz = bot.get_gyroscope_data()
             mx, my, mz = bot.get_magnetometer_data()
             # print(ax, ay, az)
-            print(ax, ay, az, gx, gy, gz, mx, my, mz)
+            # print(ax, ay, az, gx, gy, gz, mx, my, mz)
             # print("%3.3f, %3.3f, %3.3f,      %3.3f, %3.3f, %3.3f" % 
             # (ax, ay, az, gx, gy, gz))
-            # print("%3.3f, %3.3f, %3.3f, %3.3f, %3.3f, %3.3f, %3.3f, %3.3f, %3.3f" % 
-            # (ax, ay, az, gx, gy, gz, mx, my, mz))
+            print("%3.3f, %3.3f, %3.3f, %3.3f, %3.3f, %3.3f, %3.3f, %3.3f, %3.3f" % 
+            (ax, ay, az, gx, gy, gz, mx, my, mz))
             # roll, pitch, yaw = bot.get_imu_attitude_data()
             # print("roll:%f, pitch:%f, yaw:%f" % (roll, pitch, yaw))
             # m1, m2, m3, m4 = bot.get_motor_encoder()
             # print("encoder:", m1, m2, m3, m4)
 
-            # v = bot.get_motion_data()
-            # print("v:", v)
+            v = bot.get_motion_data()
+            print("v:", v)
 
             # pid = bot.get_motion_pid()
             # print(pid)
