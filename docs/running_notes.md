@@ -70,6 +70,21 @@ It launches automatically with `bringup_launch.py`.
 **Troubleshooting Lidar:**
 *   Port: Auto-detected as `/dev/ydlidar` (usually mapped to `/dev/ttyUSB0`).
 *   Baud: 512000 (auto-negotiated).
+
+### 5. Camera Setup (Hybrid Astra Pro)
+Your camera requires a **split driver** approach because the RGB sensor is UVC (Webcam) while Depth is OpenNI.
+
+**1. For Depth/IR (Obstacle Avoidance):**
+```bash
+ros2 launch astra_camera astra.launch.xml enable_color:=false enable_depth:=true enable_ir:=false
+```
+
+**2. For RGB Color (Streaming/ML):**
+```bash
+ros2 run usb_cam usb_cam_node_exe --ros-args -p video_device:=/dev/video0
+```
+
+*Note: Running both simultaneously requires good USB bandwidth. Ensure you are plugged into USB 3.0 ports.*
 Before deploying, edit `scripts/deploy_to_robot.sh` on your workstation:
 ```bash
 ROBOT_USER="jetson"

@@ -18,7 +18,24 @@
     - Mapped Joystick: Left Stick (Fwd/Back), Right Stick (Turn), Left Stick (Strafe).
 
 **Next Steps**:
-- Begin Phase 2: Sensor Integration (Lidar).
+- Begin Phase 3: TF/URDF and SLAM.
+    - Create `chassis_description` package.
+    - Calibrate Lidar position.
+    - Run `slam_toolbox`.
+
+### Session [Date: 2026-02-05] (Part 2)
+**Status**: Sensor Drivers Validated
+
+**Accomplished**:
+- **Lidar Integration**:
+    - Identified YDLidar 4ROS (via `ydlidar_ros2_driver`).
+    - Integrated into `bringup_launch.py`.
+    - Validated data in RViz (Best Effort policy).
+- **Camera Identification**:
+    - Identified Orbbec Astra Pro (Split UVC+OpenNI).
+    - Validated Depth via `astra_camera`.
+    - Validated RGB via `usb_cam` (/dev/video0).
+- **Cleanup**: Implemented clean driver build process.
     - Configured `teleop_twist_joy` for Holonomic (Mecanum) drive.
     - Mapped "Enable" button and axes for Forward/Strafe/Turn.
 - **Launch System**:
