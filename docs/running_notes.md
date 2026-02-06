@@ -85,6 +85,10 @@ ros2 run usb_cam usb_cam_node_exe --ros-args -p video_device:=/dev/video0
 ```
 
 *Note: Running both simultaneously requires good USB bandwidth. Ensure you are plugged into USB 3.0 ports.*
+
+## Deployment Guide
+
+### 1. Configuration
 Before deploying, edit `scripts/deploy_to_robot.sh` on your workstation:
 ```bash
 ROBOT_USER="jetson"
