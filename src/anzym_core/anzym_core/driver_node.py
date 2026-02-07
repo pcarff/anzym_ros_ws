@@ -156,6 +156,7 @@ class RosmasterDriver(Node):
         
         m1 = int(v1 * GAIN)
         m2 = int(v2 * GAIN)
+        
         m3 = int(v3 * GAIN)
         m4 = int(v4 * GAIN)
         
@@ -175,8 +176,8 @@ class RosmasterDriver(Node):
             vx = -float(self.bot._Rosmaster__vx)
             vy = -float(self.bot._Rosmaster__vy)
             vth = -float(self.bot._Rosmaster__vz)
-        except AttributeError:
-            # If mangling fails or vars init differently
+        except AttributeError as e:
+            self.get_logger().error(f"Odom Error: {e}")
             return
 
         current_time = self.get_clock().now()

@@ -65,6 +65,10 @@
         - Configured `usb_cam` to handle the **Astra RGB** stream (`/dev/video2`) in `/camera/color` namespace using `yuyv` format.
         - Configured `astra_camera` (OpenNI) to handle **Depth only** in `/camera/depth` namespace.
     - **Bandwidth Optimization**: Reduced resolutions/framerates (320x240 for arm, 640x480 for Astra) to stabilize 3 concurrent streams on the USB 2.0 bus.
+- **SLAM Implementation**:
+    - Created `slam_launch.py` and `mapper_params_online_async.yaml` for `slam_toolbox`.
+    - Verified full transform tree connection: `map` -> `odom` -> `base_footprint` -> `base_link` -> `laser_link`.
+    - Validated `/map` topic publication on the robot.
 - **Workflow & Access**:
     - Established SSH keys and `sshpass` workflow for automated deployment and remote debugging on `jetson@192.168.8.246`.
     - Integrated all sensors (Lidar, 2x RGB, 1x Depth) into `bringup_launch.py`.

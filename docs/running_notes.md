@@ -137,3 +137,25 @@ If the robot receives `/joy` (joystick) data but doesn't move:
 
 3.  **Check Car Type**:
     *   Default is `car_type:=2` (X3 Plus). If you have the standard X3, launch with `ros2 launch anzym_core bringup_launch.py car_type:=1`.
+
+### 6. SLAM Mapping
+The robot is configured to use `slam_toolbox` for simultaneous localization and mapping.
+
+**1. Launch Base Robot:**
+```bash
+ros2 launch anzym_core bringup_launch.py
+```
+
+**2. Launch SLAM:**
+In a separate terminal on the robot:
+```bash
+ros2 launch anzym_core slam_launch.py
+```
+
+**3. Visualize & Teleop:**
+On your workstation:
+1.  **RViz**: Add **Map** display listening to `/map` topic.
+2.  **Teleop**: Drive the robot around to build the map.
+    ```bash
+    ros2 launch anzym_core joystick_control_launch.py launch_driver:=False
+    ```

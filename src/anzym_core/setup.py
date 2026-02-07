@@ -13,9 +13,13 @@ setup(
         ('share/' + package_name + '/launch', [
             'launch/joystick_control_launch.py',
             'launch/bringup_launch.py',
-            'launch/camera_launch.py'
+            'launch/camera_launch.py',
+            'launch/slam_launch.py'
         ]),
-        ('share/' + package_name + '/config', ['config/ydlidar.yaml']),
+        ('share/' + package_name + '/config', [
+            'config/ydlidar.yaml',
+            'config/mapper_params_online_async.yaml'
+        ]),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
