@@ -14,6 +14,7 @@ setup(
             'launch/joystick_control_launch.py',
             'launch/bringup_launch.py'
         ]),
+        ('share/' + package_name + '/config', ['config/ydlidar.yaml']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,

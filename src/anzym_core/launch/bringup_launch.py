@@ -12,7 +12,7 @@ def generate_launch_description():
         # Arguments
         DeclareLaunchArgument(
             'port',
-            default_value='/dev/rosmaster',
+            default_value='/dev/ttyUSB2',
             description='Rosmaster serial port'
         ),
         
@@ -38,6 +38,14 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
                 os.path.join(get_package_share_directory('ydlidar_ros2_driver'), 'launch', 'ydlidar_launch.py')
+            ),
+            launch_arguments={'params_file': os.path.join(get_package_share_directory('anzym_core'), 'config', 'ydlidar.yaml')}.items()
+        ),
+        
+        # Robot State Publisher (URDF)
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(get_package_share_directory('anzym_description'), 'launch', 'description_launch.py')
             )
         )
     ])

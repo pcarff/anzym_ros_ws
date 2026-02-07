@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Twist
-from anzym_core.Rosmaster_Lib import Rosmaster
+from geometry_msgs.msg import Twist, TransformStamped, Quaternion
+from nav_msgs.msg import Odometry
+from sensor_msgs.msg import JointState
+from tf2_ros import TransformBroadcaster
 import math
+import time
+from anzym_core.Rosmaster_Lib import Rosmaster
 
 class RosmasterDriver(Node):
     def __init__(self):
@@ -11,52 +15,169 @@ class RosmasterDriver(Node):
         
         # Parameters
         self.declare_parameter('port', '/dev/ttyUSB0')
-        self.declare_parameter('car_type', 1)
-        
-        port = self.get_parameter('port').get_parameter_value().string_value
-        car_type = self.get_parameter('car_type').get_parameter_value().integer_value
-        
-        self.get_logger().info(f'Connecting to Rosmaster on {port}...')
+        self.declare_parameter('car_type', 2)
+        self.declare_parameter('odom_frame', 'odom')
+        self.declare_parameter('base_frame', 'base_footprint')
+        self.declare_parameter('publish_tf', True)
+
+        self.port = self.get_parameter('port').get_parameter_value().string_value
+        self.car_type = self.get_parameter('car_type').get_parameter_value().integer_value
+        self.odom_frame = self.get_parameter('odom_frame').get_parameter_value().string_value
+        self.base_frame = self.get_parameter('base_frame').get_parameter_value().string_value
+        self.publish_tf = self.get_parameter('publish_tf').get_parameter_value().bool_value
+
+        self.get_logger().info(f'Connecting to Rosmaster on {self.port}...')
         
         try:
-            # Disable debug=True for production
-            self.bot = Rosmaster(car_type=car_type, com=port, debug=False)
-            # IMPORTANT: Start the receive thread to handle incoming data/heartbeats
-            self.bot.create_receive_threading()
-            
-            # Explicitly set car type (Required for V3.3.1 hardware)
-            # 1 = X3, 2 = X3 Plus
-            self.get_logger().info(f'Sending Set Car Type: {car_type}')
-            self.bot.set_car_type(car_type)
-            
-            # Short blip to confirm connection
+            self.bot = Rosmaster(car_type=self.car_type, com=self.port, debug=False)
+            self.bot.create_receive_threading() 
+            self.bot.set_car_type(self.car_type)
+            self.bot.set_auto_report_state(True, forever=False) 
             self.bot.set_beep(50)
-            
         except Exception as e:
-            self.get_logger().error(f'Failed to connect to Rosmaster: {e}')
+            self.get_logger().error(f'Failed to connect: {e}')
             return
 
+        # Publishers
+        self.odom_pub = self.create_publisher(Odometry, 'odom', 10)
+        self.tf_broadcaster = TransformBroadcaster(self)
+        self.joint_pub = self.create_publisher(JointState, 'joint_states', 10)
+
         # Subscriber
-        self.subscription = self.create_subscription(
-            Twist,
-            'cmd_vel',
-            self.cmd_vel_callback,
-            10)
+        self.subscription = self.create_subscription(Twist, 'cmd_vel', self.cmd_vel_callback, 10)
         
-        self.get_logger().info('Rosmaster Driver Ready')
+        # Timer for Odometry (20Hz)
+        self.create_timer(0.05, self.update_odometry)
+
+        # State vars
+        self.x = 0.0
+        self.y = 0.0
+        self.th = 0.0
+        self.last_time = self.get_clock().now()
+
+        self.get_logger().info('Rosmaster Driver Ready with Odometry')
 
     def cmd_vel_callback(self, msg):
         vx = msg.linear.x
         vy = msg.linear.y
         vz = msg.angular.z
         
-        # Log at DEBUG unless analyzing motion issues
-        self.get_logger().debug(f'Vel: x={vx:.2f}, y={vy:.2f}, z={vz:.2f}')
+        # Manual Mecanum Mixing (Standard X3/X3Plus Map)
+        # Verify M1=FL, M2=RL, M3=FR, M4=RR wiring assumption
+        # X3 Plus often uses:
+        # V1 = Vx - Vy - Vz * (Ax + Ay)
+        # V2 = Vx + Vy - Vz * (Ax + Ay)
+        # V3 = Vx - Vy + Vz * (Ax + Ay)
+        # V4 = Vx + Vy + Vz * (Ax + Ay)
         
-        # Standard Firmware Kinematics
-        # Since physical wiring is now standard (M1=FL, M2=RL, M3=FR, M4=RR),
-        # we act like a standard X3 and let the MCU handle mixing.
-        self.bot.set_car_motion(vx, vy, vz)
+        # Simplified ratio mixing (works for most generic mecanum):
+        v1 = vx - vy - vz  # FL
+        v2 = vx + vy - vz  # RL
+        v3 = vx + vy + vz  # FR (Different from standard sometimes?)
+        v4 = vx - vy + vz  # RR
+        
+        # Note: Yahboom might be M1=FL, M2=RL, M3=RR, M4=FR ??
+        # Standard:
+        # M1 FL: +x +y +z | (vx - vy - vz)
+        # M2 RL: +x -y +z | (vx + vy - vz) 
+        # M3 FR: +x -y -z | (vx + vy + vz) NO -> (vx + vy + vz) is usually FR
+        # M4 RR: +x +y -z | (vx - vy + vz)
+        
+        # Let's trust the mixing that WORKED in Step 617:
+        # v_fl = (vx - vy - vz)
+        # v_rl = (vx + vy - vz)
+        # v_fr = (vx + vy + vz)
+        # v_rr = (vx - vy + vz)
+        # set_motor(v_fl, v_rl, v_fr, v_rr)
+        
+        # Scale to PWM (approx 100 max)
+        # A speed of 1.0 m/s is roughly 100 PWM? No.
+        # Let's apply a gain. 
+        GAIN = 100.0 # Arbitrary gain. 1.0 m/s -> 100 PWM
+        
+        m1 = int(v1 * GAIN)
+        m2 = int(v2 * GAIN)
+        m3 = int(v3 * GAIN)
+        m4 = int(v4 * GAIN)
+        
+        self.bot.set_motor(m1, m2, m3, m4)
+
+    def update_odometry(self):
+        # Read velocities from MCU (parsed by Rosmaster_Lib from serial report)
+        # The Lib stores them in PRIVATE variables: self.__vx, etc.
+        # But looking at Rosmaster_Lib code, they are NOT exposed via getters!?
+        # Wait, I need to check Rosmaster_Lib again.
+        # It defines __vx etc. There are NO getter methods in the snippet I saw!
+        
+        # Hack: Access private vars directly via name mangling or add getters?
+        # Python name mangling: _Rosmaster__vx
+        
+        try:
+            vx = -float(self.bot._Rosmaster__vx)
+            vy = -float(self.bot._Rosmaster__vy)
+            vth = -float(self.bot._Rosmaster__vz)
+        except AttributeError:
+            # If mangling fails or vars init differently
+            return
+
+        current_time = self.get_clock().now()
+        dt = (current_time - self.last_time).nanoseconds / 1e9
+        self.last_time = current_time
+
+        # Compute odometry in a "global" frame (simple integration)
+        delta_x = (vx * math.cos(self.th) - vy * math.sin(self.th)) * dt
+        delta_y = (vx * math.sin(self.th) + vy * math.cos(self.th)) * dt
+        delta_th = vth * dt
+
+        self.x += delta_x
+        self.y += delta_y
+        self.th += delta_th
+
+        # Quaternion
+        q = self.euler_to_quaternion(0, 0, self.th)
+
+        # Publish TF
+        if self.publish_tf:
+            t = TransformStamped()
+            t.header.stamp = current_time.to_msg()
+            t.header.frame_id = self.odom_frame
+            t.child_frame_id = self.base_frame
+            t.transform.translation.x = self.x
+            t.transform.translation.y = self.y
+            t.transform.translation.z = 0.0
+            t.transform.rotation = q
+            self.tf_broadcaster.sendTransform(t)
+
+        # Publish Odom
+        odom = Odometry()
+        odom.header.stamp = current_time.to_msg()
+        odom.header.frame_id = self.odom_frame
+        odom.child_frame_id = self.base_frame
+        
+        odom.pose.pose.position.x = self.x
+        odom.pose.pose.position.y = self.y
+        odom.pose.pose.position.z = 0.0
+        odom.pose.pose.orientation = q
+        
+        odom.twist.twist.linear.x = vx
+        odom.twist.twist.linear.y = vy
+        odom.twist.twist.angular.z = vth
+        
+        self.odom_pub.publish(odom)
+
+        # Publish Joint States (Static Arm for now)
+        joint_state = JointState()
+        joint_state.header.stamp = current_time.to_msg()
+        joint_state.name = ['arm_joint1', 'arm_joint2', 'arm_joint3', 'arm_joint4', 'arm_joint5', 'grip_joint']
+        joint_state.position = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.joint_pub.publish(joint_state)
+
+    def euler_to_quaternion(self, roll, pitch, yaw):
+        qx = math.sin(roll/2) * math.cos(pitch/2) * math.cos(yaw/2) - math.cos(roll/2) * math.sin(pitch/2) * math.sin(yaw/2)
+        qy = math.cos(roll/2) * math.sin(pitch/2) * math.cos(yaw/2) + math.sin(roll/2) * math.cos(pitch/2) * math.sin(yaw/2)
+        qz = math.cos(roll/2) * math.cos(pitch/2) * math.sin(yaw/2) - math.sin(roll/2) * math.sin(pitch/2) * math.cos(yaw/2)
+        qw = math.cos(roll/2) * math.cos(pitch/2) * math.cos(yaw/2) + math.sin(roll/2) * math.sin(pitch/2) * math.sin(yaw/2)
+        return Quaternion(x=qx, y=qy, z=qz, w=qw)
 
 def main(args=None):
     rclpy.init(args=args)

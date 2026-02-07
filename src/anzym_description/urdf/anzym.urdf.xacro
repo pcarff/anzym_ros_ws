@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<robot name="anzym_robot" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!-- Arguments -->
+  <xacro:arg name="laser_xyz" default="0.0 0.0 0.08" />
+  <xacro:arg name="camera_xyz" default="0.10 0.0 0.05" />
+
+  <!-- Base Link -->
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.02" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.25 0.16 0.04"/>
+      </geometry>
+      <material name="dark_grey">
+        <color rgba="0.2 0.2 0.2 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.02" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.25 0.16 0.04"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Footprint (Projected on ground) -->
+  <link name="base_footprint"/>
+  <joint name="base_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0.0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Laser Link (YDLidar) -->
+  <link name="laser"> <!-- Must match frame_id in ydlidar.yaml -->
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.04" radius="0.035"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0.0 0.0 0.0 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="laser_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="laser"/>
+    <origin xyz="$(arg laser_xyz)" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Camera Link (Astra) -->
+  <link name="camera_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.04 0.16 0.04"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0.0 0.0 0.8 1.0"/>
+      </material>
+    </visual>
+  </link>
+  
+  <joint name="camera_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_link"/>
+    <origin xyz="$(arg camera_xyz)" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Depth Optical Frame (Standard for Openni/Astra) -->
+  <link name="camera_depth_optical_frame"/>
+  <joint name="camera_optical_joint" type="fixed">
+    <parent link="camera_link"/>
+    <child link="camera_depth_optical_frame"/>
+    <!-- Rotate from ROS (Forward X) to Optical (Forward Z) -->
+    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
+  </joint>
+
+</robot>
