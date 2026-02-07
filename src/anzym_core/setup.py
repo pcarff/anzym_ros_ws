@@ -12,7 +12,8 @@ setup(
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', [
             'launch/joystick_control_launch.py',
-            'launch/bringup_launch.py'
+            'launch/bringup_launch.py',
+            'launch/camera_launch.py'
         ]),
         ('share/' + package_name + '/config', ['config/ydlidar.yaml']),
     ],
