@@ -1,6 +1,6 @@
 import os
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import AnyLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
@@ -19,7 +19,8 @@ def generate_launch_description():
             'framerate': 15.0,
             'image_width': 320,
             'image_height': 240,
-            'pixel_format': 'yuyv2rgb'
+            'pixel_format': 'yuyv2rgb',
+            'frame_id': 'mono_link'
         }]
     )
 
@@ -35,7 +36,8 @@ def generate_launch_description():
             'framerate': 15.0,
             'image_width': 640,
             'image_height': 480,
-            'pixel_format': 'yuyv'
+            'pixel_format': 'yuyv',
+            'frame_id': 'camera_color_frame'
         }]
     )
 
@@ -51,7 +53,10 @@ def generate_launch_description():
     )
     
     return LaunchDescription([
-        arm_cam_node,
-        astra_rgb_node,
-        astra_launch
+        # Launch Astra Depth immediately to let it claim the device first
+        astra_launch,
+        # Delay Arm Camera slightly to stagger USB inrush
+        TimerAction(period=5.0, actions=[arm_cam_node]),
+        # Delay Astra RGB significantly to ensure OpenNI driver has settled
+        TimerAction(period=10.0, actions=[astra_rgb_node])
     ])
