@@ -12,7 +12,7 @@ def generate_launch_description():
         # Arguments
         DeclareLaunchArgument(
             'port',
-            default_value='/dev/ttyUSB1',
+            default_value='/dev/rosmaster',
             description='Rosmaster serial port'
         ),
         

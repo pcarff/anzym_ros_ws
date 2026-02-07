@@ -6,9 +6,10 @@ This document serves as a quick reference for running the various subsystems of 
 **Objective**: Manually control the robot using a gamepad (Xbox/PS4/Logitech).
 
 ### 1. Hardware Setup (Confirmed)
-*   **Robot Connection**: The Motor Board is on **/dev/ttyUSB1** (not USB0).
-*   **Hardware Anomaly**: The motor wiring for the Rear Right (M3) and Front Right (M4) is **SWAPPED** compared to standard documentation.
-    *   *Correction*: This is handled automatically by the custom mixer in `driver_node.py`. **Do not change the wiring.**
+*   **Robot Connection**:
+    *   **Motor Board**: `/dev/rosmaster` (Aliased via UDEV).
+    *   **Lidar**: `/dev/ydlidar` (Aliased via UDEV).
+    *   *Note*: If these aliases are missing, run `scripts/setup_udev_rules.sh` on the robot.
 *   **Car Type**: Use `car_type:=1` (X3).
 
 ### 2. Execution Command (Robot Side)
@@ -18,7 +19,7 @@ Open a terminal (SSH) and run:
 # Source the workspace
 source ~/anzym_ros_ws/install/setup.bash
 
-# Launch Core Drivers (Port defaults to /dev/ttyUSB1)
+# Launch Core Drivers (Automatically uses /dev/rosmaster)
 ros2 launch anzym_core bringup_launch.py
 ```
 

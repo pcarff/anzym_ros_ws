@@ -23,19 +23,25 @@
     - Calibrate Lidar position.
     - Run `slam_toolbox`.
 
-### Session [Date: 2026-02-05] (Part 2)
-**Status**: Sensor Drivers Validated
+### Session [Date: 2026-02-06] (Part 3)
+**Status**: **Phase 1 Complete** (Teleop Verified) + **Phase 2 Complete** (Drivers Installed)
 
 **Accomplished**:
-- **Lidar Integration**:
-    - Identified YDLidar 4ROS (via `ydlidar_ros2_driver`).
-    - Integrated into `bringup_launch.py`.
-    - Validated data in RViz (Best Effort policy).
-- **Camera Identification**:
-    - Identified Orbbec Astra Pro (Split UVC+OpenNI).
-    - Validated Depth via `astra_camera`.
-    - Validated RGB via `usb_cam` (/dev/video0).
-- **Cleanup**: Implemented clean driver build process.
+- **Teleop Fixed**:
+    - Identified incorrect USB port mapping (Motor board was on `/dev/ttyUSB2`, while `/dev/ttyUSB1` was deceptive).
+    - Created **UDEV Rules** (`scripts/setup_udev_rules.sh`) to permanently alias:
+        - `/dev/rosmaster` -> Motor Board (CH340 at Hub Port 2)
+        - `/dev/ydlidar` -> Lidar (CP210x at Hub Port 1)
+    - Reverted `driver_node.py` to use standard `set_car_motion` kinematics (smoother PID).
+    - Validated smooth movement in all directions.
+- **Drivers**:
+    - `ydlidar_ros2_driver` installed (needs tuning).
+    - `ros2_astra_camera` installed.
+
+**Next Steps (Phase 3)**:
+- **Lidar Tuning**: Fix `Failed to get scan` error (likely sample rate or power issue).
+- **URDF**: Build TF tree (`base_link` -> `laser` -> `camera`).
+- **SLAM**: Generate map with `slam_toolbox`.
     - Configured `teleop_twist_joy` for Holonomic (Mecanum) drive.
     - Mapped "Enable" button and axes for Forward/Strafe/Turn.
 - **Launch System**:

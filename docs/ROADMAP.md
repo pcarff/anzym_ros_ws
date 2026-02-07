@@ -9,15 +9,16 @@ This roadmap outlines the step-by-step development of the Anzym ROS2 stack.
     - [x] Implement/Port low-level motor driver (Serial communication).
     - [x] Configure `teleop_twist_joy` for input.
     - [x] Implement kinematics for Mecanum drive (geometry_msgs/Twist -> Motor speeds).
+    - [x] **Hardware Fixes**: Wiring Correction, USB Port Identification (Rosmaster on `/dev/ttyUSB2`), UDEV Rules.
 
 ## Phase 2: Sensor Integration
 **Goal**: Visualize the robot's environment.
 - [x] **Step 2.1**: Lidar Setup
-    - [x] Bring up the lidar driver (YDLidar).
+    - [x] Bring up the lidar driver (YDLidar 4ROS).
     - [x] Visualize data in RViz (on remote PC).
-- [ ] **Step 2.2**: Camera Integration
-    - Configure Jetson Orin camera/USB camera.
-    - specialized node for camera stream.
+- [x] **Step 2.2**: Camera Integration
+    - [x] Identified Astra Pro (Split Driver: OpenNI + UVC).
+    - [x] Documented Launch Commands for RGB and Depth.
 
 ## Phase 3: Odometry & State Estimation
 **Goal**: The robot knows roughly where it is relative to start.
