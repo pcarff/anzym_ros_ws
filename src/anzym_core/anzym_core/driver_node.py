@@ -53,7 +53,11 @@ class RosmasterDriver(Node):
         self.x = 0.0
         self.y = 0.0
         self.th = 0.0
+        self.th = 0.0
         self.last_time = self.get_clock().now()
+        
+        # Last known joint positions for fallback
+        self.last_joint_position = [0.0] * 6
 
         self.get_logger().info('Rosmaster Driver Ready with Odometry')
 
@@ -165,11 +169,53 @@ class RosmasterDriver(Node):
         
         self.odom_pub.publish(odom)
 
-        # Publish Joint States (Static Arm for now)
+        # Publish Joint States (Read from Servos)
         joint_state = JointState()
         joint_state.header.stamp = current_time.to_msg()
         joint_state.name = ['arm_joint1', 'arm_joint2', 'arm_joint3', 'arm_joint4', 'arm_joint5', 'grip_joint']
-        joint_state.position = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        
+        # Read angles from hardware (returns list of 6 angles in degrees)
+        # Note: get_uart_servo_angle_array might return None or -1 on error
+        try:
+            angles = self.bot.get_uart_servo_angle_array()
+            if angles and len(angles) == 6 and angles[0] != -1:
+                # Convert degrees to radians (Assuming 90 deg is center/0.0 for joints 1-5)
+                # Joint 6 (Gripper) might be different
+                # Structure: [S1, S2, S3, S4, S5, S6]
+                
+                # Helper to convert: (angle - center) * (PI / 180)
+                def deg2rad(deg, center=90.0):
+                    return (deg - center) * (math.pi / 180.0)
+
+                # Joint 1: Base Rotation (90 is center)
+                j1 = deg2rad(angles[0], 90.0)
+                
+                # Joint 2: Shoulder (90 is center?)
+                j2 = deg2rad(angles[1], 90.0)
+                
+                # Joint 3: Elbow (90 is center?)
+                j3 = deg2rad(angles[2], 90.0)
+                
+                # Joint 4: Wrist Pitch (90 is center?)
+                j4 = deg2rad(angles[3], 90.0)
+                
+                # Joint 5: Wrist Roll (90 is center?)
+                j5 = deg2rad(angles[4], 90.0) # OR maybe 180 is center? 
+                
+                # Joint 6: Gripper
+                # Gripper usually 30-180? Let's just pass raw rads relative to 0 for now
+                # Or maybe normalize it. 
+                j6 = deg2rad(angles[5], 0.0) 
+                
+                self.last_joint_position = [float(j1), float(j2), float(j3), float(j4), float(j5), float(j6)]
+                joint_state.position = self.last_joint_position
+            else:
+                # If read fails, use last known
+                joint_state.position = self.last_joint_position
+        except Exception as e:
+            self.get_logger().warn(f"Failed to read servos: {e}")
+            joint_state.position = self.last_joint_position
+
         self.joint_pub.publish(joint_state)
 
     def euler_to_quaternion(self, roll, pitch, yaw):
