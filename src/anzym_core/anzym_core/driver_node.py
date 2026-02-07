@@ -7,6 +7,7 @@ from sensor_msgs.msg import JointState
 from tf2_ros import TransformBroadcaster
 import math
 import time
+from std_msgs.msg import Float64MultiArray
 from anzym_core.Rosmaster_Lib import Rosmaster
 
 class RosmasterDriver(Node):
@@ -19,6 +20,7 @@ class RosmasterDriver(Node):
         self.declare_parameter('odom_frame', 'odom')
         self.declare_parameter('base_frame', 'base_footprint')
         self.declare_parameter('publish_tf', True)
+        self.declare_parameter('init_pose', [90.0, 90.0, 90.0, 90.0, 90.0, 180.0]) # Default up/center pose
 
         self.port = self.get_parameter('port').get_parameter_value().string_value
         self.car_type = self.get_parameter('car_type').get_parameter_value().integer_value
@@ -34,6 +36,13 @@ class RosmasterDriver(Node):
             self.bot.set_car_type(self.car_type)
             self.bot.set_auto_report_state(True, forever=False) 
             self.bot.set_beep(50)
+
+            # Initialize Arm Pose
+            init_pose = self.get_parameter('init_pose').get_parameter_value().double_array_value
+            if len(init_pose) == 6:
+                init_angles = [int(x) for x in init_pose]
+                self.get_logger().info(f'Setting initial arm pose: {init_angles}')
+                self.bot.set_uart_servo_angle_array(init_angles)
         except Exception as e:
             self.get_logger().error(f'Failed to connect: {e}')
             return
@@ -45,6 +54,7 @@ class RosmasterDriver(Node):
 
         # Subscriber
         self.subscription = self.create_subscription(Twist, 'cmd_vel', self.cmd_vel_callback, 10)
+        self.arm_sub = self.create_subscription(Float64MultiArray, 'joint_commands', self.arm_cmd_callback, 10)
         
         # Timer for Odometry (20Hz)
         self.create_timer(0.05, self.update_odometry)
@@ -57,9 +67,54 @@ class RosmasterDriver(Node):
         self.last_time = self.get_clock().now()
         
         # Last known joint positions for fallback
-        self.last_joint_position = [0.0] * 6
+        self.last_joint_position = None
 
         self.get_logger().info('Rosmaster Driver Ready with Odometry')
+
+    def arm_cmd_callback(self, msg):
+        # Expecting 6 values in Radians: [Joint1, Joint2, Joint3, Joint4, Joint5, Gripper]
+        if len(msg.data) != 6:
+            self.get_logger().warn(f"Received arm command with {len(msg.data)} values, expected 6")
+            return
+            
+        def rad2deg(rad, center=90.0):
+            return int((rad * (180.0 / math.pi)) + center)
+            
+        try:
+            # Map Radians to Degrees for Hardware
+            # Check limits (hardware limits are usually 0-180 or 0-270)
+            
+            # Joint 1 (Base): Center 90
+            angle_1 = rad2deg(msg.data[0], 90.0)
+            
+            # Joint 2: Center 90
+            angle_2 = rad2deg(msg.data[1], 90.0)
+            
+            # Joint 3: Center 90
+            angle_3 = rad2deg(msg.data[2], 90.0)
+            
+            # Joint 4: Center 90
+            angle_4 = rad2deg(msg.data[3], 90.0)
+            
+            # Joint 5: Center 90
+            angle_5 = rad2deg(msg.data[4], 90.0)
+            
+            # Joint 6 (Gripper): Center 0 in logic? No, hardware is 30-180 usually.
+            # Let's assume input is 0.0 to 1.57 (0 to 90 deg) or similar.
+            # If msg.data[5] is already radians from 0->Close, we convert.
+            # Gripper is tricky. Let's assume passed value is rads from 0.
+            angle_6 = rad2deg(msg.data[5], 0.0) # Hardware likely expects 30-180
+            
+            # Clamp values to safe ranges (0-180 is safe for standard servos)
+            angles = [angle_1, angle_2, angle_3, angle_4, angle_5, angle_6]
+            angles = [max(0, min(180, a)) for a in angles]
+            
+            # Send to robot
+            # set_uart_servo_angle_array(self, angle_s=[90, 90, 90, 90, 90, 180], run_time=500)
+            self.bot.set_uart_servo_angle_array(angles, run_time=500)
+            
+        except Exception as e:
+            self.get_logger().error(f"Error setting arm angles: {e}")
 
     def cmd_vel_callback(self, msg):
         vx = msg.linear.x
@@ -170,9 +225,6 @@ class RosmasterDriver(Node):
         self.odom_pub.publish(odom)
 
         # Publish Joint States (Read from Servos)
-        joint_state = JointState()
-        joint_state.header.stamp = current_time.to_msg()
-        joint_state.name = ['arm_joint1', 'arm_joint2', 'arm_joint3', 'arm_joint4', 'arm_joint5', 'grip_joint']
         
         # Read angles from hardware (returns list of 6 angles in degrees)
         # Note: get_uart_servo_angle_array might return None or -1 on error
@@ -208,15 +260,27 @@ class RosmasterDriver(Node):
                 j6 = deg2rad(angles[5], 0.0) 
                 
                 self.last_joint_position = [float(j1), float(j2), float(j3), float(j4), float(j5), float(j6)]
-                joint_state.position = self.last_joint_position
-            else:
-                # If read fails, use last known
-                joint_state.position = self.last_joint_position
-        except Exception as e:
-            self.get_logger().warn(f"Failed to read servos: {e}")
-            joint_state.position = self.last_joint_position
+            
+            # If we haven't read successfully yet, don't publish anything
+            if self.last_joint_position is None:
+                return
 
-        self.joint_pub.publish(joint_state)
+            joint_state = JointState()
+            joint_state.header.stamp = current_time.to_msg()
+            joint_state.name = ['arm_joint1', 'arm_joint2', 'arm_joint3', 'arm_joint4', 'arm_joint5', 'grip_joint']
+            joint_state.position = self.last_joint_position
+            self.joint_pub.publish(joint_state)
+
+        except Exception as e:
+            # Only log if we have previously succeeded, to avoid spamming on startup if off
+            if self.last_joint_position is not None:
+                self.get_logger().warn(f"Failed to read servos: {e}")
+                # Publish last known
+                joint_state = JointState()
+                joint_state.header.stamp = current_time.to_msg()
+                joint_state.name = ['arm_joint1', 'arm_joint2', 'arm_joint3', 'arm_joint4', 'arm_joint5', 'grip_joint']
+                joint_state.position = self.last_joint_position
+                self.joint_pub.publish(joint_state)
 
     def euler_to_quaternion(self, roll, pitch, yaw):
         qx = math.sin(roll/2) * math.cos(pitch/2) * math.cos(yaw/2) - math.cos(roll/2) * math.sin(pitch/2) * math.sin(yaw/2)

@@ -30,7 +30,10 @@ def generate_launch_description():
             output='screen',
             parameters=[{
                 'port': LaunchConfiguration('port'),
-                'car_type': LaunchConfiguration('car_type')
+                'car_type': LaunchConfiguration('car_type'),
+                # Set initial arm pose: [J1, J2, J3, J4, J5, Grip]
+                # Default "folded" pose (Elbow bent 90 degrees forward from up)
+                'init_pose': [90.0, 90.0, 0.0, 90.0, 90.0, 180.0]
             }]
         ),
 
