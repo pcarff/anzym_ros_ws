@@ -33,7 +33,7 @@ def generate_launch_description():
                 'car_type': LaunchConfiguration('car_type'),
                 # Set initial arm pose: [J1, J2, J3, J4, J5, Grip]
                 # Default "folded" pose (Elbow bent 90 degrees forward from up)
-                'init_pose': [90.0, 90.0, 0.0, 90.0, 90.0, 180.0]
+                'init_pose': [90.0, 135.0, 0.0, 0.0, 90.0, 180.0]
             }]
         ),
 
@@ -49,6 +49,13 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
                 os.path.join(get_package_share_directory('anzym_description'), 'launch', 'description_launch.py')
+            )
+        ),
+
+        # Camera Stack
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(get_package_share_directory('anzym_core'), 'launch', 'camera_launch.py')
             )
         )
     ])

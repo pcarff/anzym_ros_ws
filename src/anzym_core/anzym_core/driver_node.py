@@ -20,7 +20,7 @@ class RosmasterDriver(Node):
         self.declare_parameter('odom_frame', 'odom')
         self.declare_parameter('base_frame', 'base_footprint')
         self.declare_parameter('publish_tf', True)
-        self.declare_parameter('init_pose', [90.0, 90.0, 90.0, 90.0, 90.0, 180.0]) # Default up/center pose
+        self.declare_parameter('init_pose', [90.0, 135.0, 0.0, 0.0, 90.0, 180.0]) # Default up/center pose
 
         self.port = self.get_parameter('port').get_parameter_value().string_value
         self.car_type = self.get_parameter('car_type').get_parameter_value().integer_value

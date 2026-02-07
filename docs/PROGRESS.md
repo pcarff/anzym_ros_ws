@@ -53,8 +53,23 @@
     - Created `docs/running_notes.md` with operational guides.
     - Maintained `ROADMAP.md` and `setup_and_workflow.md`.
 
-**Next Actions**:
-- **Validate on Hardware**: User to deploy and test joystick control.
-- **Phase 2: Sensors**:
-    - Identify and configure the Lidar driver (likely `sllidar` or `rplidar`).
-    - Integrate the Orin-native camera or USB camera.
+### Session [Date: 2026-02-07]
+**Status**: **Phase 2 Complete** (Full Sensor Suite Integration)
+
+**Accomplished**:
+- **Camera Integration (Triple Feed)**:
+    - Resolved issue where only two of three camera feeds were visible.
+    - **Astra RGB Fix**: Identified that the native `astra_camera` driver often fails to publish the RGB stream on Jetson.
+    - **Split Driver Architecture**: 
+        - Configured `usb_cam` to handle the **Arm Camera** (`/dev/video0`) in `/arm_camera` namespace.
+        - Configured `usb_cam` to handle the **Astra RGB** stream (`/dev/video2`) in `/camera/color` namespace using `yuyv` format.
+        - Configured `astra_camera` (OpenNI) to handle **Depth only** in `/camera/depth` namespace.
+    - **Bandwidth Optimization**: Reduced resolutions/framerates (320x240 for arm, 640x480 for Astra) to stabilize 3 concurrent streams on the USB 2.0 bus.
+- **Workflow & Access**:
+    - Established SSH keys and `sshpass` workflow for automated deployment and remote debugging on `jetson@192.168.8.246`.
+    - Integrated all sensors (Lidar, 2x RGB, 1x Depth) into `bringup_launch.py`.
+
+**Next Steps (Phase 3)**:
+- **URDF Calibration**: Fine-tune joint offsets and camera extrinsics in the Xacro.
+- **Visual SLAM**: Test `rtabmap_ros` or `vins-fusion` using the synchronized Astra RGB-D pair.
+- **Behavior**: Implement a "Follow Cat" node using the stabilized camera feeds.

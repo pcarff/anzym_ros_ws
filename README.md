@@ -22,4 +22,19 @@ Documentation is maintained in the `docs/` directory.
 - `docs/`: Project documentation and guides.
 
 ## Usage
-*Instructions for running the robot will be added as features are implemented.*
+All core hardware components are integrated into a single bringup launch.
+
+**1. On the Robot:**
+```bash
+source install/setup.bash
+ros2 launch anzym_core bringup_launch.py
+```
+This starts:
+- Motor Driver & Mecanum Kinematics
+- YDLidar (Laser Scan)
+- Robot Arm visualization
+- Triple Camera Feed (Arm RGB, Astra RGB-D)
+
+**2. On the Workstation:**
+- Use RViz to visualize `/scan` and image topics.
+- Run `ros2 launch anzym_core joystick_control_launch.py launch_driver:=False` for teleop.

@@ -72,20 +72,23 @@ It launches automatically with `bringup_launch.py`.
 *   Port: Auto-detected as `/dev/ydlidar` (usually mapped to `/dev/ttyUSB0`).
 *   Baud: 512000 (auto-negotiated).
 
-### 5. Camera Setup (Hybrid Astra Pro)
-Your camera requires a **split driver** approach because the RGB sensor is UVC (Webcam) while Depth is OpenNI.
+### 5. Camera Setup (Integrated Triple Feed)
+The camera stack is now fully integrated into `bringup_launch.py`. It uses a split-driver approach to ensure stability and all three feeds (Arm RGB, Astra RGB, Astra Depth) are available simultaneously.
 
-**1. For Depth/IR (Obstacle Avoidance):**
+**Topic Namespaces:**
+*   `/arm_camera/image_raw`: RGB feed from the camera mounted on the robot arm (`/dev/video0`).
+*   `/camera/color/image_raw`: RGB feed from the main Astra camera (`/dev/video2`).
+*   `/camera/depth/image_raw`: Depth feed from the main Astra camera.
+
+**How to Visualize:**
+In RViz, add an **Image** display for each topic. 
+*Note: Due to USB 2.0 bandwidth sharing, framerates will be around 4-10 FPS when all three are active.*
+
+**Manual Restart (if needed):**
+If a camera fails to initialize, you can restart just the camera stack:
 ```bash
-ros2 launch astra_camera astra.launch.xml enable_color:=false enable_depth:=true enable_ir:=false
+ros2 launch anzym_core camera_launch.py
 ```
-
-**2. For RGB Color (Streaming/ML):**
-```bash
-ros2 run usb_cam usb_cam_node_exe --ros-args -p video_device:=/dev/video0
-```
-
-*Note: Running both simultaneously requires good USB bandwidth. Ensure you are plugged into USB 3.0 ports.*
 
 ## Deployment Guide
 

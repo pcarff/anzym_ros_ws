@@ -7,18 +7,35 @@ from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
-    # USB Cam (RGB Color)
-    usb_cam_node = Node(
+    # USB Cam (RGB Color) - Arm Camera
+    arm_cam_node = Node(
         package='usb_cam',
         executable='usb_cam_node_exe',
         name='usb_cam',
+        namespace='arm_camera',
         output='screen',
         parameters=[{
-            'video_device': '/dev/video2',
-            'framerate': 30.0,
+            'video_device': '/dev/video0', 
+            'framerate': 15.0,
+            'image_width': 320,
+            'image_height': 240,
+            'pixel_format': 'yuyv2rgb'
+        }]
+    )
+
+    # Astra Camera RGB - Using usb_cam for better stability on Jetson
+    astra_rgb_node = Node(
+        package='usb_cam',
+        executable='usb_cam_node_exe',
+        name='usb_cam',
+        namespace='camera/color',
+        output='screen',
+        parameters=[{
+            'video_device': '/dev/video2', 
+            'framerate': 15.0,
             'image_width': 640,
             'image_height': 480,
-            'pixel_format': 'yuyv'  # Common format for webcams
+            'pixel_format': 'yuyv'
         }]
     )
 
@@ -27,14 +44,14 @@ def generate_launch_description():
     astra_launch = IncludeLaunchDescription(
         AnyLaunchDescriptionSource(os.path.join(astra_camera_package_dir, 'launch', 'astra.launch.xml')),
         launch_arguments={
-            'enable_color': 'false',
+            'enable_color': 'false', # Using usb_cam for color instead
             'enable_depth': 'true',
             'enable_ir': 'false'
         }.items()
     )
     
     return LaunchDescription([
-        usb_cam_node,
+        arm_cam_node,
+        astra_rgb_node,
         astra_launch
     ])
-
