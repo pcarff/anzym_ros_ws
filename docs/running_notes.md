@@ -138,6 +138,14 @@ If the robot receives `/joy` (joystick) data but doesn't move:
 3.  **Check Car Type**:
     *   Default is `car_type:=2` (X3 Plus). If you have the standard X3, launch with `ros2 launch anzym_core bringup_launch.py car_type:=1`.
 
+### 5b. IMU Troubleshooting / Port Issues
+The robot driver must connect to `/dev/rosmaster` (aliased to `/dev/ttyUSB2`) to receive IMU and Motor data.
+*   **Verification**:
+    ```bash
+    ros2 topic echo /imu/data --field linear_acceleration --once
+    ```
+    Should show Z-axis approx `-9.8`. If values are all `0.0`, the driver is likely connected to the wrong port (e.g., Lidar port).
+
 ### 6. SLAM Mapping
 The robot is configured to use `slam_toolbox` for simultaneous localization and mapping.
 

@@ -31,6 +31,7 @@ ros2 launch anzym_core bringup_launch.py
 ```
 This starts:
 - Motor Driver & Mecanum Kinematics
+- IMU (Acceleration/Gyro)
 - YDLidar (Laser Scan)
 - Robot Arm visualization
 - Triple Camera Feed (Arm RGB, Astra RGB-D)
