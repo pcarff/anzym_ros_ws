@@ -58,11 +58,11 @@ def generate_launch_description():
             parameters=[{
                 'enable_button': -1,
                 'axis_linear.x': 1,
-                'scale_linear.x': 0.5,
+                'scale_linear.x': 0.3,
                 'axis_linear.y': 0,
-                'scale_linear.y': 0.5,
+                'scale_linear.y': 0.3,
                 'axis_angular.yaw': 2,
-                'scale_angular.yaw': 0.5,
+                'scale_angular.yaw': 0.2, # Reduced for smoother turning
                 'require_enable_button': False
             }]
         )
