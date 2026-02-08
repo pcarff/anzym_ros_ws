@@ -69,6 +69,12 @@
     - Created `slam_launch.py` and `mapper_params_online_async.yaml` for `slam_toolbox`.
     - Verified full transform tree connection: `map` -> `odom` -> `base_footprint` -> `base_link` -> `laser_link`.
     - Validated `/map` topic publication on the robot.
+- **IMU Fix**:
+    - Identified incorrect serial port usage (`/dev/ttyUSB0` instead of `/dev/rosmaster`).
+    - Updated `bringup_launch.py` and `driver_node.py` to use `/dev/rosmaster` (aliased to `/dev/ttyUSB2`).
+    - Enabled IMU data publishing in `driver_node.py` on topic `/imu/data`.
+    - Uncommented `imu_link` in URDF to ensure valid TF tree.
+    - Verified valid acceleration data (~9.8 m/s^2 on Z-axis).
 - **Workflow & Access**:
     - Established SSH keys and `sshpass` workflow for automated deployment and remote debugging on `jetson@192.168.8.246`.
     - Integrated all sensors (Lidar, 2x RGB, 1x Depth) into `bringup_launch.py`.

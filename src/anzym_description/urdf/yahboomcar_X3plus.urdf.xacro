@@ -7,7 +7,7 @@
         <color rgba="0.7 0.7 0.7 1"/>
     </material>
     <link name="base_footprint"/>
-    <!-- <link name="imu_link"/> -->
+    <link name="imu_link"/>
     <!-- common link-->
     <xacro:macro name="common_link" params="name material path *origin">
         <link name="${name}">
@@ -23,6 +23,9 @@
                     <mesh filename="package://anzym_description/meshes/${path}/collision/${name}.STL"/>
                 </geometry>
                 <origin xyz="0 0 0" rpy="0 0 0"/>
+                <collision>
+                    <origin xyz="0 0 0" rpy="0 0 0"/>
+                </collision>
             </collision>
             <xacro:insert_block name="origin"/>
         </link>
@@ -84,7 +87,7 @@
         <child link="base_link"/>
         <origin xyz="0.0 0.0 0.076" rpy="0 0 0"/>
     </joint>
-    <!-- <xacro:fixed_joint name="base_imu" parent="base_link" child="imu_link" xyz="0.001 0.017 0.0322" rpy="0 3.1415 1.5707"/> -->
+    <xacro:fixed_joint name="base_imu" parent="base_link" child="imu_link" xyz="0.001 0.017 0.0322" rpy="0 3.1415 1.5707"/>
 
     <xacro:common_link name="laser_link" material="White" path="sensor">
         <inertial>

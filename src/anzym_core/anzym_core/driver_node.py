@@ -3,7 +3,7 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist, TransformStamped, Quaternion
 from nav_msgs.msg import Odometry
-from sensor_msgs.msg import JointState
+from sensor_msgs.msg import JointState, Imu
 from tf2_ros import TransformBroadcaster
 import math
 import time
@@ -15,10 +15,11 @@ class RosmasterDriver(Node):
         super().__init__('rosmaster_driver')
         
         # Parameters
-        self.declare_parameter('port', '/dev/ttyUSB0')
+        self.declare_parameter('port', '/dev/rosmaster')
         self.declare_parameter('car_type', 2)
         self.declare_parameter('odom_frame', 'odom')
         self.declare_parameter('base_frame', 'base_footprint')
+        self.declare_parameter('imu_frame', 'imu_link')
         self.declare_parameter('publish_tf', True)
         self.declare_parameter('init_pose', [90.0, 135.0, 0.0, 0.0, 90.0, 180.0]) # Default up/center pose
 
@@ -26,6 +27,7 @@ class RosmasterDriver(Node):
         self.car_type = self.get_parameter('car_type').get_parameter_value().integer_value
         self.odom_frame = self.get_parameter('odom_frame').get_parameter_value().string_value
         self.base_frame = self.get_parameter('base_frame').get_parameter_value().string_value
+        self.imu_frame = self.get_parameter('imu_frame').get_parameter_value().string_value
         self.publish_tf = self.get_parameter('publish_tf').get_parameter_value().bool_value
 
         self.get_logger().info(f'Connecting to Rosmaster on {self.port}...')
@@ -49,6 +51,7 @@ class RosmasterDriver(Node):
 
         # Publishers
         self.odom_pub = self.create_publisher(Odometry, 'odom', 10)
+        self.imu_pub = self.create_publisher(Imu, 'imu/data', 10)
         self.tf_broadcaster = TransformBroadcaster(self)
         self.joint_pub = self.create_publisher(JointState, 'joint_states', 10)
 
@@ -224,6 +227,46 @@ class RosmasterDriver(Node):
         odom.twist.twist.angular.z = vth
         
         self.odom_pub.publish(odom)
+
+        # Publish IMU
+        try:
+            # Access private parsed values
+            ax = float(self.bot._Rosmaster__ax)
+            ay = float(self.bot._Rosmaster__ay)
+            az = float(self.bot._Rosmaster__az)
+            gx = float(self.bot._Rosmaster__gx)
+            gy = float(self.bot._Rosmaster__gy)
+            gz = float(self.bot._Rosmaster__gz)
+            
+            imu = Imu()
+            imu.header.stamp = current_time.to_msg()
+            imu.header.frame_id = self.imu_frame
+            
+            # Linear Accel (m/s^2)
+            imu.linear_acceleration.x = ax
+            imu.linear_acceleration.y = ay
+            imu.linear_acceleration.z = az
+            
+            # Angular Velocity (rad/s)
+            imu.angular_velocity.x = gx
+            imu.angular_velocity.y = gy
+            imu.angular_velocity.z = gz
+            
+            # Orientation
+            try:
+                roll = float(self.bot._Rosmaster__roll)
+                pitch = float(self.bot._Rosmaster__pitch)
+                yaw = float(self.bot._Rosmaster__yaw)
+                q_imu = self.euler_to_quaternion(roll, pitch, yaw)
+                imu.orientation = q_imu
+            except:
+                pass 
+
+            self.imu_pub.publish(imu)
+
+        except Exception as e:
+            # self.get_logger().warn(f"Failed to read IMU: {e}")
+            pass
 
         # Publish Joint States (Read from Servos)
         
