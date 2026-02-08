@@ -176,9 +176,9 @@ class RosmasterDriver(Node):
         # Python name mangling: _Rosmaster__vx
         
         try:
-            vx = -float(self.bot._Rosmaster__vx)
-            vy = -float(self.bot._Rosmaster__vy)
-            vth = -float(self.bot._Rosmaster__vz)
+            vx = float(self.bot._Rosmaster__vx)
+            vy = float(self.bot._Rosmaster__vy)
+            vth = float(self.bot._Rosmaster__vz)
         except AttributeError as e:
             self.get_logger().error(f"Odom Error: {e}")
             return
