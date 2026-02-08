@@ -47,20 +47,15 @@ ekf_filter_node:
     
     imu0: /imu/data
     imu0_config: [false, false, false,
-                  false, false, true,  # Fuse Yaw (orientation) directly? No, usually prefer velocity for stability.
-                  false, false, false, # No linear velocity from IMU
-                  false, false, true,  # Fuse Angular Velocity (Gyro Z)
-                  true,  false, false] # Fuse Linear Acceleration (X) - helps with wheel slip detection (maybe)
-    
-    # Refinement on IMU Config:
-    # Use Gyro (vyaw) for turning rate.
-    # Use Yaw (orientation) if it's drift-free (magnetometer), but we don't trust ours fully yet.
-    # Let's stick to velocity fusion first.
+                  false, false, true, # Fuse Yaw (Orientation)
+                  false, false, false,
+                  false, false, true, # Fuse Gyro Z (Rot Vetocity)
+                  false, false, false]
     
     imu0_queue_size: 10
     imu0_nodelay: false
-    imu0_differential: false # Measured relative to start
-    imu0_relative: true      # Relative to start pose
+    imu0_differential: true  # Differentiate absolute orientation (better for cheap IMUs)
+    imu0_relative: false      
     
     # Covariance diagonals (Process noise) - Standard defaults often work well
     # process_noise_covariance: [...]
