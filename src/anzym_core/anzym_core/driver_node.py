@@ -177,8 +177,8 @@ class RosmasterDriver(Node):
         
         try:
             vx = float(self.bot._Rosmaster__vx)
-            vy = float(self.bot._Rosmaster__vy)
-            vth = float(self.bot._Rosmaster__vz)
+            vy = -float(self.bot._Rosmaster__vy)
+            vth = -float(self.bot._Rosmaster__vz)
         except AttributeError as e:
             self.get_logger().error(f"Odom Error: {e}")
             return
@@ -232,7 +232,7 @@ class RosmasterDriver(Node):
         try:
             # Access private parsed values
             ax = float(self.bot._Rosmaster__ax)
-            ay = float(self.bot._Rosmaster__ay)
+            ay = float(self.bot._Rosmaster__ay) # Check if this needs inversion too? Likely yes if frame is shared.
             az = float(self.bot._Rosmaster__az)
             gx = float(self.bot._Rosmaster__gx)
             gy = float(self.bot._Rosmaster__gy)
@@ -244,20 +244,21 @@ class RosmasterDriver(Node):
             
             # Linear Accel (m/s^2)
             imu.linear_acceleration.x = ax
-            imu.linear_acceleration.y = ay
+            imu.linear_acceleration.y = -ay # Invert Y accel to match ROS frame
             imu.linear_acceleration.z = az
             
             # Angular Velocity (rad/s)
             imu.angular_velocity.x = gx
             imu.angular_velocity.y = gy
-            imu.angular_velocity.z = gz
+            imu.angular_velocity.z = -gz # Invert Z gyro to match ROS frame
             
             # Orientation
             try:
                 roll = float(self.bot._Rosmaster__roll)
                 pitch = float(self.bot._Rosmaster__pitch)
                 yaw = float(self.bot._Rosmaster__yaw)
-                q_imu = self.euler_to_quaternion(roll, pitch, yaw)
+                # If Z is inverted, Yaw is likely inverted too
+                q_imu = self.euler_to_quaternion(roll, pitch, -yaw) 
                 imu.orientation = q_imu
             except:
                 pass 
