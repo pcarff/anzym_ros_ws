@@ -18,7 +18,8 @@ setup(
         ]),
         ('share/' + package_name + '/config', [
             'config/ydlidar.yaml',
-            'config/mapper_params_online_async.yaml'
+            'config/mapper_params_online_async.yaml',
+            'config/ekf_params.yaml'
         ]),
     ],
     install_requires=['setuptools'],

@@ -1,0 +1,70 @@
+###
+# Robot Localization EKF Config for Anzym X3 Plus
+# Fuses Mecanum Wheel Odometry (V) + IMU (Gyro/Accel)
+###
+
+ekf_filter_node:
+  ros__parameters:
+    frequency: 30.0
+    two_d_mode: true
+    publish_tf: true
+    
+    # Frames
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_footprint
+    world_frame: odom
+
+    # Use simulated time if necessary (usually false on real hardware)
+    use_sim_time: false
+
+    # ODOMETRY CONFIGURATION
+    # Topic: /odom (published by driver_node)
+    # Config: [x, y, z, 
+    #          roll, pitch, yaw, 
+    #          vx, vy, vz, 
+    #          vroll, vpitch, vyaw, 
+    #          ax, ay, az]
+    
+    odom0: /odom
+    odom0_config: [false, false, false,
+                   false, false, false,
+                   true,  true,  false,
+                   false, false, true,
+                   false, false, false]
+    odom0_queue_size: 10
+    odom0_nodelay: false
+    odom0_differential: false
+    odom0_relative: false
+
+    # IMU CONFIGURATION
+    # Topic: /imu/data (published by driver_node)
+    # Config: [x, y, z, 
+    #          roll, pitch, yaw, 
+    #          vx, vy, vz, 
+    #          vroll, vpitch, vyaw, 
+    #          ax, ay, az]
+    
+    imu0: /imu/data
+    imu0_config: [false, false, false,
+                  false, false, true,  # Fuse Yaw (orientation) directly? No, usually prefer velocity for stability.
+                  false, false, false, # No linear velocity from IMU
+                  false, false, true,  # Fuse Angular Velocity (Gyro Z)
+                  true,  false, false] # Fuse Linear Acceleration (X) - helps with wheel slip detection (maybe)
+    
+    # Refinement on IMU Config:
+    # Use Gyro (vyaw) for turning rate.
+    # Use Yaw (orientation) if it's drift-free (magnetometer), but we don't trust ours fully yet.
+    # Let's stick to velocity fusion first.
+    
+    imu0_queue_size: 10
+    imu0_nodelay: false
+    imu0_differential: false # Measured relative to start
+    imu0_relative: true      # Relative to start pose
+    
+    # Covariance diagonals (Process noise) - Standard defaults often work well
+    # process_noise_covariance: [...]
+    # initial_estimate_covariance: [...]
+
+    # Debugging
+    # print_diagnostics: true

@@ -146,8 +146,20 @@ The robot driver must connect to `/dev/rosmaster` (aliased to `/dev/ttyUSB2`) to
     ```
     Should show Z-axis approx `-9.8`. If values are all `0.0`, the driver is likely connected to the wrong port (e.g., Lidar port).
 
-### 6. SLAM Mapping
-The robot is configured to use `slam_toolbox` for simultaneous localization and mapping.
+### 5c. Sensor Fusion (EKF)
+By default, the robot uses `robot_localization` (EKF) to fuse Wheel Odometry and IMU data.
+This improves position accuracy, especially during rotation or strafing.
+
+*   **Disable EKF (Use Raw Odometry)**:
+    ```bash
+    ros2 launch anzym_core bringup_launch.py use_ekf:=False
+    ```
+*   **Disable Cameras (Save Resources)**:
+    ```bash
+    ros2 launch anzym_core bringup_launch.py use_cameras:=False
+    ```
+*   **Verification**:
+    Check if `/odometry/filtered` topic exists and if TF `odom` -> `base_footprint` is published by `ekf_node`.
 
 **1. Launch Base Robot:**
 ```bash

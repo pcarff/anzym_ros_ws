@@ -75,6 +75,16 @@
     - Enabled IMU data publishing in `driver_node.py` on topic `/imu/data`.
     - Uncommented `imu_link` in URDF to ensure valid TF tree.
     - Verified valid acceleration data (~9.8 m/s^2 on Z-axis).
+- **Sensor Fusion (EKF)**:
+    - Integrated `robot_localization` package.
+    - Configured `ekf_params.yaml` to fuse:
+        - Wheel Odometry (`/odom`): Velocity (vx, vy, vyaw).
+        - IMU (`/imu/data`): Gyro (vyaw) and Accel (ax).
+    - Updated `bringup_launch.py` to:
+        - Conditionally launch `ekf_node` (`use_ekf:=True`, default).
+        - Disable `driver_node` internal TF publishing when EKF is active.
+        - Add `use_cameras` argument to optionally disable cameras for resource saving.
+    - Verified correct TF generation: `odom` -> `base_footprint` published by EKF.
 - **Workflow & Access**:
     - Established SSH keys and `sshpass` workflow for automated deployment and remote debugging on `jetson@192.168.8.246`.
     - Integrated all sensors (Lidar, 2x RGB, 1x Depth) into `bringup_launch.py`.
