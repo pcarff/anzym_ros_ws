@@ -31,15 +31,34 @@ Connect joystick to workstation:
 ros2 launch anzym_core joystick_control_launch.py launch_driver:=False
 ```
 
-### 3. Control Scheme (Mecanum Drive)
-The `teleop_twist_joy` is configured for holonomic movement.
+### 3. Control Scheme
 
+#### Drive (Always Active)
 | Input | Action |
 | :--- | :--- |
-| **Enable Button** | *Always On* (or hold L1/LB if configured safely) |
 | **Left Stick (Up/Down)** | Move Forward / Backward |
 | **Left Stick (Left/Right)** | Strafe Left / Right |
 | **Right Stick (Left/Right)** | Turn (Rotate) Left / Right |
+
+#### Arm Control (`arm_teleop_node`)
+Verified button mapping for the project controller (15-button gamepad):
+
+| Input | Button/Axis Index | Action |
+| :--- | :--- | :--- |
+| **Y** | Button 4 | Arm → Straight Up (all joints 90°) |
+| **X** | Button 3 | Arm → Init Pose `[90,135,0,0,90,180]` |
+| **A** | Button 0 | Arm → Pose A (placeholder) |
+| **B** | Button 1 | Arm → Pose B (placeholder) |
+| **LT (pull)** | Axis 4 | Gripper opens |
+| **RT (pull)** | Axis 5 | Gripper closes |
+| **LB** | Button 6 | Wrist roll left |
+| **RB** | Button 7 | Wrist roll right |
+| **D-Pad** | Axes 6/7 | Reserved (not yet assigned) |
+
+*Note: Triggers rest at 1.0, activate at < -0.5. The joysticks are NOT used by the arm node.*
+
+**Hardware Note**: If the arm does not respond after power-on, the servo controller
+board may need to be physically reset (press the reset button on the lower board).
 
 ### 4. Troubleshooting
 **"Package 'joy' not found" or "Launch file not found"**

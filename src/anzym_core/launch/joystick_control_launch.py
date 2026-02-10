@@ -45,7 +45,7 @@ def generate_launch_description():
             name='joy_node',
             parameters=[{
                 'dev': LaunchConfiguration('joy_dev'),
-                'deadzone': 0.05,
+                'deadzone': 0.15,
                 'autorepeat_rate': 20.0,
             }]
         ),
@@ -56,14 +56,14 @@ def generate_launch_description():
             executable='teleop_node',
             name='teleop_twist_joy_node',
             parameters=[{
-                'enable_button': 4, # L1 - Deadman switch for wheels
+                'enable_button': -1,
                 'axis_linear.x': 1,
-                'scale_linear.x': 0.3,
+                'scale_linear.x': 0.5,
                 'axis_linear.y': 0,
-                'scale_linear.y': 0.3,
+                'scale_linear.y': 0.5,
                 'axis_angular.yaw': 2,
-                'scale_angular.yaw': 0.2, # Reduced for smoother turning
-                'require_enable_button': True
+                'scale_angular.yaw': 0.5,
+                'require_enable_button': False
             }]
         ),
 

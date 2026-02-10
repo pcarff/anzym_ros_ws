@@ -39,12 +39,16 @@ class RosmasterDriver(Node):
             self.bot.set_auto_report_state(True, forever=False) 
             self.bot.set_beep(50)
 
+            # Let the controller board fully initialize
+            time.sleep(1.0)
+
             # Initialize Arm Pose
             init_pose = self.get_parameter('init_pose').get_parameter_value().double_array_value
             if len(init_pose) == 6:
                 init_angles = [int(x) for x in init_pose]
                 self.get_logger().info(f'Setting initial arm pose: {init_angles}')
-                self.bot.set_uart_servo_angle_array(init_angles)
+                self.bot.set_uart_servo_angle_array(init_angles, run_time=100)
+                self.get_logger().info(f'Init arm command sent')
         except Exception as e:
             self.get_logger().error(f'Failed to connect: {e}')
             return
@@ -112,9 +116,13 @@ class RosmasterDriver(Node):
             angles = [angle_1, angle_2, angle_3, angle_4, angle_5, angle_6]
             angles = [max(0, min(180, a)) for a in angles]
             
-            # Send to robot
-            # set_uart_servo_angle_array(self, angle_s=[90, 90, 90, 90, 90, 180], run_time=500)
-            self.bot.set_uart_servo_angle_array(angles, run_time=500)
+            # Only send if angles actually changed (prevents serial flooding)
+            if hasattr(self, '_last_arm_angles') and self._last_arm_angles == angles:
+                return
+            self._last_arm_angles = list(angles)
+            
+            self.get_logger().debug(f"ARM CMD: {angles}")
+            self.bot.set_uart_servo_angle_array(angles, run_time=100)
             
         except Exception as e:
             self.get_logger().error(f"Error setting arm angles: {e}")
