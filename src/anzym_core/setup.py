@@ -36,6 +36,7 @@ setup(
     entry_points={
         'console_scripts': [
             'driver_node = anzym_core.driver_node:main',
+            'arm_teleop_node = anzym_core.arm_teleop_node:main',
         ],
     },
 )

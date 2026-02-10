@@ -59,8 +59,8 @@ class RosmasterDriver(Node):
         self.subscription = self.create_subscription(Twist, 'cmd_vel', self.cmd_vel_callback, 10)
         self.arm_sub = self.create_subscription(Float64MultiArray, 'joint_commands', self.arm_cmd_callback, 10)
         
-        # Timer for Odometry (20Hz)
-        self.create_timer(0.05, self.update_odometry)
+        # Timer for Odometry (50Hz)
+        self.create_timer(0.02, self.update_odometry)
 
         # State vars
         self.x = 0.0
@@ -176,9 +176,9 @@ class RosmasterDriver(Node):
         # Python name mangling: _Rosmaster__vx
         
         try:
-            vx = float(self.bot._Rosmaster__vx)
+            vx = -float(self.bot._Rosmaster__vx)
             vy = -float(self.bot._Rosmaster__vy)
-            vth = -float(self.bot._Rosmaster__vz)
+            vth = -float(self.bot._Rosmaster__vz) # Flipped to positive to match CCW convention
         except AttributeError as e:
             self.get_logger().error(f"Odom Error: {e}")
             return
@@ -250,7 +250,7 @@ class RosmasterDriver(Node):
             # Angular Velocity (rad/s)
             imu.angular_velocity.x = gx
             imu.angular_velocity.y = gy
-            imu.angular_velocity.z = -gz # Invert Z gyro to match ROS frame
+            imu.angular_velocity.z = -gz # Negate library value to result in a positive base_link rotation after URDF transform.
             
             # Orientation
             try:

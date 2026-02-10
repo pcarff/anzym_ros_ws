@@ -16,23 +16,23 @@ slam_toolbox:
     scan_topic: /scan
     use_map_saver: true
     mode: mapping #localization
-
+ 
     # Topic Refresh
-    transform_publish_period: 0.02
-    map_update_interval: 2.0
-    resolution: 0.05
-    max_laser_range: 20.0 # for rastering images
-    minimum_time_interval: 0.5
+    map_update_interval: 0.2
+    minimum_time_interval: 0.005
+    transform_publish_period: 0.01
     transform_timeout: 0.2
     tf_buffer_duration: 30.
     stack_size_to_use: 40000000 #// program needs a larger stack size to serialize large maps
+    resolution: 0.05
+    max_laser_range: 15.0 # cap processing distance for speed
     enable_interactive_mode: true
 
     # General Parameters
     use_scan_matching: true
     use_scan_barycenter: true
-    minimum_travel_distance: 0.5
-    minimum_travel_heading: 0.5
+    minimum_travel_distance: 0.1
+    minimum_travel_heading: 0.1
     scan_buffer_size: 10
     scan_buffer_maximum_scan_distance: 10.0
     link_match_minimum_response_fine: 0.1
@@ -64,3 +64,7 @@ slam_toolbox:
     minimum_angle_penalty: 0.9
     minimum_distance_penalty: 0.5
     use_response_expansion: true
+
+    # Performance tuning for Jetson
+    max_num_iterations: 15 # Increased for better convergence/quality
+    max_optimization_time_per_scan: 0.03 # Increased slightly for quality

@@ -56,14 +56,21 @@ def generate_launch_description():
             executable='teleop_node',
             name='teleop_twist_joy_node',
             parameters=[{
-                'enable_button': -1,
+                'enable_button': 4, # L1 - Deadman switch for wheels
                 'axis_linear.x': 1,
                 'scale_linear.x': 0.3,
                 'axis_linear.y': 0,
                 'scale_linear.y': 0.3,
                 'axis_angular.yaw': 2,
                 'scale_angular.yaw': 0.2, # Reduced for smoother turning
-                'require_enable_button': False
+                'require_enable_button': True
             }]
+        ),
+
+        # 4. Arm Teleop Node (Converts joy -> joint_commands)
+        Node(
+            package='anzym_core',
+            executable='arm_teleop_node',
+            name='arm_teleop_node'
         )
     ])

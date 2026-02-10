@@ -5,3 +5,9 @@ log/
 .colcon/
 *.pyc
 __pycache__/
+
+# Debug/temp files
+debug_urdf*.xml
+current_urdf.xml
+*.gv
+*.pdf
