@@ -81,8 +81,8 @@ class RosmasterDriver(Node):
         self.th = 0.0
         self.last_time = self.get_clock().now()
         
-        # Last known joint positions for fallback
-        self.last_joint_position = None
+        # Last known joint positions for fallback (guarantees RViz tree won't collapse)
+        self.last_joint_position = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         
         # Add dynamic param callback for PID
         self.add_on_set_parameters_callback(self.parameter_callback)
@@ -222,8 +222,12 @@ class RosmasterDriver(Node):
         # Python name mangling: _Rosmaster__vx
         
         try:
-            vx = -float(self.bot._Rosmaster__vx)
-            vy = -float(self.bot._Rosmaster__vy)
+            # We assume vx and vy are natively correct in the MCU.
+            # E.g. forward motion (positive cmd_vel.x) yields positive __vx from encoders.
+            # vth may need to be inverted based on if MCU treats CW or CCW as positive.
+            # Typically, ROS wants CCW as positive Z. If MCU treats CW as positive, we invert vz.
+            vx = float(self.bot._Rosmaster__vx)
+            vy = float(self.bot._Rosmaster__vy)
             vth = -float(self.bot._Rosmaster__vz) # Flipped to positive to match CCW convention
         except AttributeError as e:
             self.get_logger().error(f"Odom Error: {e}")
@@ -289,22 +293,23 @@ class RosmasterDriver(Node):
             imu.header.frame_id = self.imu_frame
             
             # Linear Accel (m/s^2)
+            # We output the raw sensor data directly to the IMU topic.
+            # The URDF (base_link -> imu_link TF) will handle any physical rotations of the sensor chip.
             imu.linear_acceleration.x = ax
-            imu.linear_acceleration.y = -ay # Invert Y accel to match ROS frame
+            imu.linear_acceleration.y = ay 
             imu.linear_acceleration.z = az
             
             # Angular Velocity (rad/s)
             imu.angular_velocity.x = gx
             imu.angular_velocity.y = gy
-            imu.angular_velocity.z = -gz # Negate library value to result in a positive base_link rotation after URDF transform.
+            imu.angular_velocity.z = gz 
             
             # Orientation
             try:
                 roll = float(self.bot._Rosmaster__roll)
                 pitch = float(self.bot._Rosmaster__pitch)
                 yaw = float(self.bot._Rosmaster__yaw)
-                # If Z is inverted, Yaw is likely inverted too
-                q_imu = self.euler_to_quaternion(roll, pitch, -yaw) 
+                q_imu = self.euler_to_quaternion(roll, pitch, yaw) 
                 imu.orientation = q_imu
             except:
                 pass 
@@ -321,7 +326,8 @@ class RosmasterDriver(Node):
         # Note: get_uart_servo_angle_array might return None or -1 on error
         try:
             angles = self.bot.get_uart_servo_angle_array()
-            if angles and len(angles) == 6 and angles[0] != -1:
+            # Hardware functions return negative values (-1 or -2) on timeout or failure
+            if angles and len(angles) == 6 and angles[0] >= 0:
                 # Convert degrees to radians (Assuming 90 deg is center/0.0 for joints 1-5)
                 # Joint 6 (Gripper) might be different
                 # Structure: [S1, S2, S3, S4, S5, S6]
@@ -352,10 +358,7 @@ class RosmasterDriver(Node):
                 
                 self.last_joint_position = [float(j1), float(j2), float(j3), float(j4), float(j5), float(j6)]
             
-            # If we haven't read successfully yet, don't publish anything
-            if self.last_joint_position is None:
-                return
-
+            # Publish last known valid joint state
             joint_state = JointState()
             joint_state.header.stamp = current_time.to_msg()
             joint_state.name = ['arm_joint1', 'arm_joint2', 'arm_joint3', 'arm_joint4', 'arm_joint5', 'grip_joint']
