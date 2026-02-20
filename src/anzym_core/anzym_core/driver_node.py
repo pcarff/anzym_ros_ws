@@ -9,6 +9,8 @@ import math
 import time
 from std_msgs.msg import Float64MultiArray
 from anzym_core.Rosmaster_Lib import Rosmaster
+from rclpy.parameter import Parameter
+from rcl_interfaces.msg import SetParametersResult
 
 class RosmasterDriver(Node):
     def __init__(self):
@@ -22,6 +24,12 @@ class RosmasterDriver(Node):
         self.declare_parameter('imu_frame', 'imu_link')
         self.declare_parameter('publish_tf', True)
         self.declare_parameter('init_pose', [90.0, 135.0, 0.0, 0.0, 90.0, 180.0]) # Default up/center pose
+        
+        # PID Tuning Parameters
+        self.declare_parameter('pid_kp', 0.5)
+        self.declare_parameter('pid_ki', 0.1)
+        self.declare_parameter('pid_kd', 0.3)
+        self.declare_parameter('pid_save', False)
 
         self.port = self.get_parameter('port').get_parameter_value().string_value
         self.car_type = self.get_parameter('car_type').get_parameter_value().integer_value
@@ -75,8 +83,38 @@ class RosmasterDriver(Node):
         
         # Last known joint positions for fallback
         self.last_joint_position = None
+        
+        # Add dynamic param callback for PID
+        self.add_on_set_parameters_callback(self.parameter_callback)
 
         self.get_logger().info('Rosmaster Driver Ready with Odometry')
+        
+    def parameter_callback(self, params):
+        kp = self.get_parameter('pid_kp').value
+        ki = self.get_parameter('pid_ki').value
+        kd = self.get_parameter('pid_kd').value
+        save = self.get_parameter('pid_save').value
+        
+        update = False
+        for param in params:
+            if param.name == 'pid_kp':
+                kp = param.value
+                update = True
+            elif param.name == 'pid_ki':
+                ki = param.value
+                update = True
+            elif param.name == 'pid_kd':
+                kd = param.value
+                update = True
+            elif param.name == 'pid_save':
+                save = param.value
+                update = True
+                
+        if update:
+            self.bot.set_pid_param(kp, ki, kd, forever=save)
+            self.get_logger().info(f"Updated Hardware PID -> Kp: {kp}, Ki: {ki}, Kd: {kd} (Saved: {save})")
+            
+        return SetParametersResult(successful=True)
 
     def arm_cmd_callback(self, msg):
         # Expecting 6 values in Radians: [Joint1, Joint2, Joint3, Joint4, Joint5, Gripper]

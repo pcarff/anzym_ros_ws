@@ -18,6 +18,7 @@ class Rosmaster(object):
         # com="/dev/ttyAMA0"
 
         self.ser = serial.Serial(com, 115200)
+        self._data_lock = threading.Lock()
 
         self.__delay_time = delay
         self.__debug = debug
@@ -141,143 +142,160 @@ class Rosmaster(object):
         # print("parse_data:", ext_data, ext_type)
         if ext_type == self.FUNC_REPORT_SPEED:
             # print(ext_data)
-            self.__vx = int(struct.unpack('h', bytearray(ext_data[0:2]))[0]) / 1000.0
-            self.__vy = int(struct.unpack('h', bytearray(ext_data[2:4]))[0]) / 1000.0
-            self.__vz = int(struct.unpack('h', bytearray(ext_data[4:6]))[0]) / 1000.0
-            self.__battery_voltage = struct.unpack('B', bytearray(ext_data[6:7]))[0]
+            self.__vx = int(struct.unpack_from('<h', bytearray(ext_data), 0)[0]) / 1000.0
+            self.__vy = int(struct.unpack_from('<h', bytearray(ext_data), 2)[0]) / 1000.0
+            self.__vz = int(struct.unpack_from('<h', bytearray(ext_data), 4)[0]) / 1000.0
+            self.__battery_voltage = struct.unpack_from('<B', bytearray(ext_data), 6)[0]
         # 解析MPU9250原始陀螺仪、加速度计、磁力计数据
         # (MPU9250)the original gyroscope, accelerometer, magnetometer data
         elif ext_type == self.FUNC_REPORT_MPU_RAW:
             # 陀螺仪传感器:±500dps=±500°/s ±32768 (gyro/32768*500)*PI/180(rad/s)=gyro/3754.9(rad/s)
             gyro_ratio = 1 / 3754.9 # ±500dps
-            self.__gx = struct.unpack('h', bytearray(ext_data[0:2]))[0]*gyro_ratio
-            self.__gy = struct.unpack('h', bytearray(ext_data[2:4]))[0]*-gyro_ratio
-            self.__gz = struct.unpack('h', bytearray(ext_data[4:6]))[0]*-gyro_ratio
+            self.__gx = struct.unpack_from('<h', bytearray(ext_data), 0)[0]*gyro_ratio
+            self.__gy = struct.unpack_from('<h', bytearray(ext_data), 2)[0]*-gyro_ratio
+            self.__gz = struct.unpack_from('<h', bytearray(ext_data), 4)[0]*-gyro_ratio
             # 加速度传感器:±2g=±2*9.8m/s^2 ±32768 accel/32768*19.6=accel/1671.84
             accel_ratio = 1 / 1671.84
-            self.__ax = struct.unpack('h', bytearray(ext_data[6:8]))[0]*accel_ratio
-            self.__ay = struct.unpack('h', bytearray(ext_data[8:10]))[0]*accel_ratio
-            self.__az = struct.unpack('h', bytearray(ext_data[10:12]))[0]*accel_ratio
+            self.__ax = struct.unpack_from('<h', bytearray(ext_data), 6)[0]*accel_ratio
+            self.__ay = struct.unpack_from('<h', bytearray(ext_data), 8)[0]*accel_ratio
+            self.__az = struct.unpack_from('<h', bytearray(ext_data), 10)[0]*accel_ratio
             # 磁力计传感器
             mag_ratio = 1
-            self.__mx = struct.unpack('h', bytearray(ext_data[12:14]))[0]*mag_ratio
-            self.__my = struct.unpack('h', bytearray(ext_data[14:16]))[0]*mag_ratio
-            self.__mz = struct.unpack('h', bytearray(ext_data[16:18]))[0]*mag_ratio
+            self.__mx = struct.unpack_from('<h', bytearray(ext_data), 12)[0]*mag_ratio
+            self.__my = struct.unpack_from('<h', bytearray(ext_data), 14)[0]*mag_ratio
+            self.__mz = struct.unpack_from('<h', bytearray(ext_data), 16)[0]*mag_ratio
         # 解析ICM20948原始陀螺仪、加速度计、磁力计数据
         # (ICM20948)the original gyroscope, accelerometer, magnetometer data
         elif ext_type == self.FUNC_REPORT_ICM_RAW:
             gyro_ratio = 1 / 1000.0
-            self.__gx = struct.unpack('h', bytearray(ext_data[0:2]))[0]*gyro_ratio
-            self.__gy = struct.unpack('h', bytearray(ext_data[2:4]))[0]*gyro_ratio
-            self.__gz = struct.unpack('h', bytearray(ext_data[4:6]))[0]*gyro_ratio
+            self.__gx = struct.unpack_from('<h', bytearray(ext_data), 0)[0]*gyro_ratio
+            self.__gy = struct.unpack_from('<h', bytearray(ext_data), 2)[0]*gyro_ratio
+            self.__gz = struct.unpack_from('<h', bytearray(ext_data), 4)[0]*gyro_ratio
 
             accel_ratio = 1 / 1000.0
-            self.__ax = struct.unpack('h', bytearray(ext_data[6:8]))[0]*accel_ratio
-            self.__ay = struct.unpack('h', bytearray(ext_data[8:10]))[0]*accel_ratio
-            self.__az = struct.unpack('h', bytearray(ext_data[10:12]))[0]*accel_ratio
+            self.__ax = struct.unpack_from('<h', bytearray(ext_data), 6)[0]*accel_ratio
+            self.__ay = struct.unpack_from('<h', bytearray(ext_data), 8)[0]*accel_ratio
+            self.__az = struct.unpack_from('<h', bytearray(ext_data), 10)[0]*accel_ratio
 
             mag_ratio = 1 / 1000.0
-            self.__mx = struct.unpack('h', bytearray(ext_data[12:14]))[0]*mag_ratio
-            self.__my = struct.unpack('h', bytearray(ext_data[14:16]))[0]*mag_ratio
-            self.__mz = struct.unpack('h', bytearray(ext_data[16:18]))[0]*mag_ratio
+            self.__mx = struct.unpack_from('<h', bytearray(ext_data), 12)[0]*mag_ratio
+            self.__my = struct.unpack_from('<h', bytearray(ext_data), 14)[0]*mag_ratio
+            self.__mz = struct.unpack_from('<h', bytearray(ext_data), 16)[0]*mag_ratio
         # 解析板子的姿态角
         # the attitude Angle of the board
         elif ext_type == self.FUNC_REPORT_IMU_ATT:
-            self.__roll = struct.unpack('h', bytearray(ext_data[0:2]))[0] / 10000.0
-            self.__pitch = struct.unpack('h', bytearray(ext_data[2:4]))[0] / 10000.0
-            self.__yaw = struct.unpack('h', bytearray(ext_data[4:6]))[0] / 10000.0
+            self.__roll = struct.unpack_from('<h', bytearray(ext_data), 0)[0] / 10000.0
+            self.__pitch = struct.unpack_from('<h', bytearray(ext_data), 2)[0] / 10000.0
+            self.__yaw = struct.unpack_from('<h', bytearray(ext_data), 4)[0] / 10000.0
         # 解析四个轮子的编码器数据
         # Encoder data on all four wheels
         elif ext_type == self.FUNC_REPORT_ENCODER:
-            self.__encoder_m1 = struct.unpack('i', bytearray(ext_data[0:4]))[0]
-            self.__encoder_m2 = struct.unpack('i', bytearray(ext_data[4:8]))[0]
-            self.__encoder_m3 = struct.unpack('i', bytearray(ext_data[8:12]))[0]
-            self.__encoder_m4 = struct.unpack('i', bytearray(ext_data[12:16]))[0]
+            self.__encoder_m1 = struct.unpack_from('<i', bytearray(ext_data), 0)[0]
+            self.__encoder_m2 = struct.unpack_from('<i', bytearray(ext_data), 4)[0]
+            self.__encoder_m3 = struct.unpack_from('<i', bytearray(ext_data), 8)[0]
+            self.__encoder_m4 = struct.unpack_from('<i', bytearray(ext_data), 12)[0]
 
         else:
             if ext_type == self.FUNC_UART_SERVO:
-                self.__read_id = struct.unpack('B', bytearray(ext_data[0:1]))[0]
-                self.__read_val = struct.unpack('h', bytearray(ext_data[1:3]))[0]
+                self.__read_id = struct.unpack_from('<B', bytearray(ext_data), 0)[0]
+                self.__read_val = struct.unpack_from('<h', bytearray(ext_data), 1)[0]
                 if self.__debug:
                     print("FUNC_UART_SERVO:", self.__read_id, self.__read_val)
 
             elif ext_type == self.FUNC_ARM_CTRL:
-                self.__read_arm[0] = struct.unpack('h', bytearray(ext_data[0:2]))[0]
-                self.__read_arm[1] = struct.unpack('h', bytearray(ext_data[2:4]))[0]
-                self.__read_arm[2] = struct.unpack('h', bytearray(ext_data[4:6]))[0]
-                self.__read_arm[3] = struct.unpack('h', bytearray(ext_data[6:8]))[0]
-                self.__read_arm[4] = struct.unpack('h', bytearray(ext_data[8:10]))[0]
-                self.__read_arm[5] = struct.unpack('h', bytearray(ext_data[10:12]))[0]
+                self.__read_arm[0] = struct.unpack_from('<h', bytearray(ext_data), 0)[0]
+                self.__read_arm[1] = struct.unpack_from('<h', bytearray(ext_data), 2)[0]
+                self.__read_arm[2] = struct.unpack_from('<h', bytearray(ext_data), 4)[0]
+                self.__read_arm[3] = struct.unpack_from('<h', bytearray(ext_data), 6)[0]
+                self.__read_arm[4] = struct.unpack_from('<h', bytearray(ext_data), 8)[0]
+                self.__read_arm[5] = struct.unpack_from('<h', bytearray(ext_data), 10)[0]
                 self.__read_arm_ok = 1
                 if self.__debug:
                     print("FUNC_ARM_CTRL:", self.__read_arm)
 
             elif ext_type == self.FUNC_VERSION:
-                self.__version_H = struct.unpack('B', bytearray(ext_data[0:1]))[0]
-                self.__version_L = struct.unpack('B', bytearray(ext_data[1:2]))[0]
+                self.__version_H = struct.unpack_from('<B', bytearray(ext_data), 0)[0]
+                self.__version_L = struct.unpack_from('<B', bytearray(ext_data), 1)[0]
                 if self.__debug:
                     print("FUNC_VERSION:", self.__version_H, self.__version_L)
 
             elif ext_type == self.FUNC_SET_MOTOR_PID:
-                self.__pid_index = struct.unpack('B', bytearray(ext_data[0:1]))[0]
-                self.__kp1 = struct.unpack('h', bytearray(ext_data[1:3]))[0]
-                self.__ki1 = struct.unpack('h', bytearray(ext_data[3:5]))[0]
-                self.__kd1 = struct.unpack('h', bytearray(ext_data[5:7]))[0]
+                self.__pid_index = struct.unpack_from('<B', bytearray(ext_data), 0)[0]
+                self.__kp1 = struct.unpack_from('<h', bytearray(ext_data), 1)[0]
+                self.__ki1 = struct.unpack_from('<h', bytearray(ext_data), 3)[0]
+                self.__kd1 = struct.unpack_from('<h', bytearray(ext_data), 5)[0]
                 if self.__debug:
                     print("FUNC_SET_MOTOR_PID:", self.__pid_index, [self.__kp1, self.__ki1, self.__kd1])
 
             elif ext_type == self.FUNC_SET_YAW_PID:
-                self.__pid_index = struct.unpack('B', bytearray(ext_data[0:1]))[0]
-                self.__kp1 = struct.unpack('h', bytearray(ext_data[1:3]))[0]
-                self.__ki1 = struct.unpack('h', bytearray(ext_data[3:5]))[0]
-                self.__kd1 = struct.unpack('h', bytearray(ext_data[5:7]))[0]
+                self.__pid_index = struct.unpack_from('<B', bytearray(ext_data), 0)[0]
+                self.__kp1 = struct.unpack_from('<h', bytearray(ext_data), 1)[0]
+                self.__ki1 = struct.unpack_from('<h', bytearray(ext_data), 3)[0]
+                self.__kd1 = struct.unpack_from('<h', bytearray(ext_data), 5)[0]
                 if self.__debug:
                     print("FUNC_SET_YAW_PID:", self.__pid_index, [self.__kp1, self.__ki1, self.__kd1])
 
             elif ext_type == self.FUNC_ARM_OFFSET:
-                self.__arm_offset_id = struct.unpack('B', bytearray(ext_data[0:1]))[0]
-                self.__arm_offset_state = struct.unpack('B', bytearray(ext_data[1:2]))[0]
+                self.__arm_offset_id = struct.unpack_from('<B', bytearray(ext_data), 0)[0]
+                self.__arm_offset_state = struct.unpack_from('<B', bytearray(ext_data), 1)[0]
                 if self.__debug:
                     print("FUNC_ARM_OFFSET:", self.__arm_offset_id, self.__arm_offset_state)
 
             elif ext_type == self.FUNC_AKM_DEF_ANGLE:
-                id = struct.unpack('B', bytearray(ext_data[0:1]))[0]
-                self.__akm_def_angle = struct.unpack('B', bytearray(ext_data[1:2]))[0]
+                id = struct.unpack_from('<B', bytearray(ext_data), 0)[0]
+                self.__akm_def_angle = struct.unpack_from('<B', bytearray(ext_data), 1)[0]
                 self.__akm_readed_angle = True
                 if self.__debug:
                     print("FUNC_AKM_DEF_ANGLE:", id, self.__akm_def_angle)
             
             elif ext_type == self.FUNC_SET_CAR_TYPE:
-                car_type = struct.unpack('B', bytearray(ext_data[0:1]))[0]
+                car_type = struct.unpack_from('<B', bytearray(ext_data), 0)[0]
                 self.__read_car_type = car_type
             
 
     # 接收数据 receive data
     def __receive_data(self):
+        buffer = bytearray()
         while True:
-            head1 = bytearray(self.ser.read())[0]
-            if head1 == self.__HEAD:
-                head2 = bytearray(self.ser.read())[0]
-                check_sum = 0
-                rx_check_num = 0
-                if head2 == self.__DEVICE_ID - 1:
-                    ext_len = bytearray(self.ser.read())[0]
-                    ext_type = bytearray(self.ser.read())[0]
-                    ext_data = []
-                    check_sum = ext_len + ext_type
-                    data_len = ext_len - 2
-                    while len(ext_data) < data_len:
-                        value = bytearray(self.ser.read())[0]
-                        ext_data.append(value)
-                        if len(ext_data) == data_len:
-                            rx_check_num = value
-                        else:
-                            check_sum = check_sum + value
-                    if check_sum % 256 == rx_check_num:
-                        self.__parse_data(ext_type, ext_data)
+            try:
+                waiting = self.ser.in_waiting
+                if waiting > 0:
+                    buffer.extend(self.ser.read(waiting))
+                else:
+                    time.sleep(0.001)
+                    continue
+                
+                while len(buffer) >= 6:
+                    if buffer[0] != self.__HEAD:
+                        buffer.pop(0)
+                        continue
+                    if buffer[1] != (self.__DEVICE_ID - 1):
+                        buffer.pop(0)
+                        continue
+                        
+                    ext_len = buffer[2]
+                    packet_len = ext_len + 4 # head1, head2, len, checksum
+                    
+                    if len(buffer) < packet_len:
+                        break # wait for more data
+                        
+                    ext_type = buffer[3]
+                    ext_data = buffer[4:ext_len+2]
+                    rx_check_num = buffer[ext_len + 3]
+                    
+                    check_sum = (ext_len + ext_type + sum(ext_data)) % 256
+                    if check_sum == rx_check_num:
+                        with self._data_lock:
+                            self.__parse_data(ext_type, ext_data)
                     else:
                         if self.__debug:
-                            print("check sum error:", ext_len, ext_type, ext_data)
+                            print("check sum error:", ext_len, ext_type, list(ext_data))
+                            
+                    del buffer[:packet_len]
+            except Exception as e:
+                if self.__debug:
+                    print("receive error:", e)
+                time.sleep(0.01)
 
     # 请求数据， function：对应要返回数据的功能字，parm：传入的参数。
     # Request data, function: corresponding function word to return data, parm: parameter passed in
@@ -1093,57 +1111,55 @@ class Rosmaster(object):
     # 获取加速度计三轴数据，返回a_x, a_y, a_z
     # Get accelerometer triaxial data, return a_x, a_y, a_z
     def get_accelerometer_data(self):
-        a_x, a_y, a_z = self.__ax, self.__ay, self.__az
-        # self.__ax, self.__ay, self.__az = 0, 0, 0
+        with self._data_lock:
+            a_x, a_y, a_z = self.__ax, self.__ay, self.__az
         return a_x, a_y, a_z
 
     # 获取陀螺仪三轴数据，返回g_x, g_y, g_z
     # Get the gyro triaxial data, return g_x, g_y, g_z
     def get_gyroscope_data(self):
-        g_x, g_y, g_z = self.__gx, self.__gy, self.__gz
-        # self.__gx, self.__gy, self.__gz = 0, 0, 0
+        with self._data_lock:
+            g_x, g_y, g_z = self.__gx, self.__gy, self.__gz
         return g_x, g_y, g_z
 
     # 获取磁力计三轴数据，返回m_x, m_y, m_z
     def get_magnetometer_data(self):
-        m_x, m_y, m_z = self.__mx, self.__my, self.__mz
-        # self.__mx, self.__my, self.__mz = 0, 0, 0
+        with self._data_lock:
+            m_x, m_y, m_z = self.__mx, self.__my, self.__mz
         return m_x, m_y, m_z
 
     # 获取板子姿态角，返回yaw, roll, pitch
     # ToAngle=True返回角度，ToAngle=False返回弧度。
     def get_imu_attitude_data(self, ToAngle=True):
-        if ToAngle:
-            RtA = 57.2957795
-            roll = self.__roll * RtA
-            pitch = self.__pitch * RtA
-            yaw = self.__yaw * RtA
-        else:
-            roll, pitch, yaw = self.__roll, self.__pitch, self.__yaw
-        # self.__roll, self.__pitch, self.__yaw = 0, 0, 0
+        with self._data_lock:
+            if ToAngle:
+                RtA = 57.2957795
+                roll = self.__roll * RtA
+                pitch = self.__pitch * RtA
+                yaw = self.__yaw * RtA
+            else:
+                roll, pitch, yaw = self.__roll, self.__pitch, self.__yaw
         return roll, pitch, yaw
 
     # 获取小车速度，val_vx, val_vy, val_vz
     # Get the car speed, val_vx, val_vy, val_vz
     def get_motion_data(self):
-        val_vx = self.__vx
-        val_vy = self.__vy
-        val_vz = self.__vz
-        # self.__vx, self.__vy, self.__vz = 0, 0, 0
+        with self._data_lock:
+            val_vx, val_vy, val_vz = self.__vx, self.__vy, self.__vz
         return val_vx, val_vy, val_vz
 
     # 获取电池电压值
     # Get the battery voltage
     def get_battery_voltage(self):
-        vol = self.__battery_voltage / 10.0
-        # self.__battery_voltage = 0
+        with self._data_lock:
+            vol = self.__battery_voltage / 10.0
         return vol
 
     # 获取四路电机编码器数据
     # Obtain data of four-channel motor encoder
     def get_motor_encoder(self):
-        m1, m2, m3, m4 = self.__encoder_m1, self.__encoder_m2, self.__encoder_m3, self.__encoder_m4
-        # self.__encoder_m1, self.__encoder_m2, self.__encoder_m3, self.__encoder_m4 = 0, 0, 0, 0
+        with self._data_lock:
+            m1, m2, m3, m4 = self.__encoder_m1, self.__encoder_m2, self.__encoder_m3, self.__encoder_m4
         return m1, m2, m3, m4
 
     # 获取小车的运动PID参数, 返回[kp, ki, kd]

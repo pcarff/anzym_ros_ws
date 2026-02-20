@@ -14,6 +14,7 @@ The project is built step-by-step, prioritizing modularity, clear documentation,
 Documentation is maintained in the `docs/` directory.
 - [Project Roadmap](docs/ROADMAP.md)
 - [Development Progress](docs/PROGRESS.md)
+- [Rosmaster Hardware & Software Optimization Guide](docs/guides/Rosmaster_Optimization_Guide.md)
 - [Setup & Guides](docs/guides/)
 
 ## Repository Structure
